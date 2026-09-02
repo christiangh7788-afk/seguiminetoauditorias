@@ -210,8 +210,9 @@ table tbody tr:hover{background:var(--panel2);}
 .field .val.neg{color:var(--bad);}
 .field .val.pos{color:var(--ok);}
 
-.acl-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:12px;}
-@media(max-width:700px){.acl-grid{grid-template-columns:1fr;}}
+.acl-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:12px;}
+@media(max-width:900px){.acl-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.acl-grid{grid-template-columns:1fr;}}
 .acl-box{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px;}
 .acl-box label{display:block;color:var(--sub);font-size:12px;margin-bottom:7px;font-weight:600;}
 .acl-box input{
@@ -589,11 +590,11 @@ function latestAudit(eco){
    CÁLCULOS DE ACLARACIONES
    ===================================================================== */
 function aclFor(folio){
-  return ACLARACIONES[folio] || {cedisConfianza:0, brisa:0, depositoRecuperacion:0, editCount:0, ultimaModificacion:'', historial:[]};
+  return ACLARACIONES[folio] || {cedisConfianza:0, brisa:0, depositoRecuperacion:0, manualEmpaque:0, editCount:0, ultimaModificacion:'', historial:[]};
 }
 function totalAclarado(folio){
   const a = aclFor(folio);
-  return (Number(a.cedisConfianza)||0) + (Number(a.brisa)||0) + (Number(a.depositoRecuperacion)||0);
+  return (Number(a.cedisConfianza)||0) + (Number(a.brisa)||0) + (Number(a.depositoRecuperacion)||0) + (Number(a.manualEmpaque)||0);
 }
 function mermaDespues(audit){
   if(!audit) return 0;
@@ -631,7 +632,7 @@ function allStores(){
 
 function aggregateFor(ecoList){
   let auditadas = 0, ventaTot = 0, mermaAntesTot = 0, mermaDespuesTot = 0;
-  let fuera = 0, dentro = 0, cedisTot = 0, brisaTot = 0, depositoTot = 0;
+  let fuera = 0, dentro = 0, cedisTot = 0, brisaTot = 0, depositoTot = 0, empaqueTot = 0;
   let conAclaraciones = 0;
   ecoList.forEach(function(eco){
     const a = latestAudit(eco);
@@ -645,6 +646,7 @@ function aggregateFor(ecoList){
     cedisTot += Number(acl.cedisConfianza)||0;
     brisaTot += Number(acl.brisa)||0;
     depositoTot += Number(acl.depositoRecuperacion)||0;
+    empaqueTot += Number(acl.manualEmpaque)||0;
     if(tieneAclaraciones(a.folio)) conAclaraciones++;
   });
   return {
@@ -658,7 +660,7 @@ function aggregateFor(ecoList){
     mermaAntesTot: mermaAntesTot,
     mermaDespuesTot: mermaDespuesTot,
     conAclaraciones: conAclaraciones,
-    cedisTot: cedisTot, brisaTot: brisaTot, depositoTot: depositoTot
+    cedisTot: cedisTot, brisaTot: brisaTot, depositoTot: depositoTot, empaqueTot: empaqueTot
   };
 }
 
@@ -694,19 +696,20 @@ function pctPair(antes, despues){
     '<div class="pp-item"><span class="pp-lbl">Final</span><span class="pp-val ' + cd + '">' + vd + '</span></div>' +
     '</div>';
 }
-function aclSummaryText(cedis, brisa, deposito){
-  cedis = Number(cedis)||0; brisa = Number(brisa)||0; deposito = Number(deposito)||0;
-  if(!cedis && !brisa && !deposito) return '';
+function aclSummaryText(cedis, brisa, deposito, empaque){
+  cedis = Number(cedis)||0; brisa = Number(brisa)||0; deposito = Number(deposito)||0; empaque = Number(empaque)||0;
+  if(!cedis && !brisa && !deposito && !empaque) return '';
   const parts = [];
   if(cedis) parts.push('CEDIS ' + fmtMoney(cedis));
   if(brisa) parts.push('Brisa ' + fmtMoney(brisa));
   if(deposito) parts.push('Depósito ' + fmtMoney(deposito));
+  if(empaque) parts.push('Manual/Empaque ' + fmtMoney(empaque));
   return parts.join(' · ');
 }
-function aclSummaryWithTotal(cedis, brisa, deposito){
-  const base = aclSummaryText(cedis, brisa, deposito);
+function aclSummaryWithTotal(cedis, brisa, deposito, empaque){
+  const base = aclSummaryText(cedis, brisa, deposito, empaque);
   if(!base) return '';
-  const total = (Number(cedis)||0) + (Number(brisa)||0) + (Number(deposito)||0);
+  const total = (Number(cedis)||0) + (Number(brisa)||0) + (Number(deposito)||0) + (Number(empaque)||0);
   return base + ' · Total ' + fmtMoney(total);
 }
 function escapeHtml(s){
@@ -796,7 +799,7 @@ function viewCompania(){
 
 function cleanOverviewHtml(agg, title){
   const cls = pctClass(agg.pctDespues);
-  const totalAcl = agg.cedisTot + agg.brisaTot + agg.depositoTot;
+  const totalAcl = agg.cedisTot + agg.brisaTot + agg.depositoTot + agg.empaqueTot;
   return '<div class="clean-overview">' +
     '<div>' +
       '<div class="main-label">Merma actual · ' + escapeHtml(title) + '</div>' +
@@ -925,7 +928,7 @@ function storeRowsForZona(region, zona){
     const list = AUDITORIAS_BY_ECO[eco] || [];
     const a = list[0];
     const veces = list.length;
-    const aclTxt = a ? aclSummaryWithTotal(aclFor(a.folio).cedisConfianza, aclFor(a.folio).brisa, aclFor(a.folio).depositoRecuperacion) : '';
+    const aclTxt = a ? aclSummaryWithTotal(aclFor(a.folio).cedisConfianza, aclFor(a.folio).brisa, aclFor(a.folio).depositoRecuperacion, aclFor(a.folio).manualEmpaque) : '';
     rows += '<div class="store-row">';
     rows += '<div class="store-row-top">';
     rows += '<span class="store-name" onclick="goTienda(' + eco + ')">' + escapeHtml(info.nombre) + '</span>';
@@ -1030,6 +1033,7 @@ function viewTienda(eco, folio){
   html += aclInput('cedis', 'CEDIS de confianza', acl.cedisConfianza);
   html += aclInput('brisa', 'Brisa', acl.brisa);
   html += aclInput('deposito', 'Depósito de recuperación', acl.depositoRecuperacion);
+  html += aclInput('empaque', 'Aclaraciones manuales / Norma de empaque', acl.manualEmpaque);
   html += '</div>';
   html += '<button class="btn primary" id="btnSaveAcl">Guardar aclaraciones</button> ';
   html += '<span class="status-msg" id="aclStatus" style="margin-left:10px;"></span>';
@@ -1049,7 +1053,7 @@ function viewTienda(eco, folio){
     html += '<ul class="hist-list">';
     acl.historial.slice().reverse().forEach(function(h){
       html += '<li><span class="who">' + escapeHtml(h.fecha) + (h.coach?' · '+escapeHtml(h.coach):'') + '</span>' +
-        '<span>CEDIS ' + fmtMoney(h.cedis) + ' · Brisa ' + fmtMoney(h.brisa) + ' · Depósito ' + fmtMoney(h.deposito) + '</span></li>';
+        '<span>CEDIS ' + fmtMoney(h.cedis) + ' · Brisa ' + fmtMoney(h.brisa) + ' · Depósito ' + fmtMoney(h.deposito) + ' · Manual/Empaque ' + fmtMoney(h.empaque) + '</span></li>';
     });
     html += '</ul>';
   }
@@ -1083,6 +1087,7 @@ function wireTiendaInputs(){
     const cedis = document.getElementById('acl_cedis').value;
     const brisa = document.getElementById('acl_brisa').value;
     const deposito = document.getElementById('acl_deposito').value;
+    const empaque = document.getElementById('acl_empaque').value;
     const statusEl = document.getElementById('aclStatus');
     btn.disabled = true;
     statusEl.textContent = 'Guardando…';
@@ -1090,7 +1095,7 @@ function wireTiendaInputs(){
     try{
       const updated = await callAppsScript({
         action:'saveAclaracion', folio: folio,
-        cedis: cedis||0, brisa: brisa||0, deposito: deposito||0,
+        cedis: cedis||0, brisa: brisa||0, deposito: deposito||0, empaque: empaque||0,
         coach: (window.localStorage && localStorage.getItem('auditorias_coach_name')) || ''
       });
       ACLARACIONES[folio] = updated;
