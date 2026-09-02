@@ -603,6 +603,16 @@ function pctMermaDespues(audit){
   if(!audit || !audit.ventaPeriodo) return 0;
   return mermaDespues(audit) / Number(audit.ventaPeriodo);
 }
+function tieneAclaraciones(folio){
+  return (aclFor(folio).editCount||0) > 0;
+}
+function pctDespuesDisplay(audit){
+  // null hasta que el coach capture o edite las aclaraciones — así se
+  // identifica de un vistazo quién ya metió datos y quién no.
+  if(!audit) return null;
+  if(!tieneAclaraciones(audit.folio)) return null;
+  return pctMermaDespues(audit);
+}
 
 /* =====================================================================
    AGREGADOS por región / zona
@@ -622,6 +632,7 @@ function allStores(){
 function aggregateFor(ecoList){
   let auditadas = 0, ventaTot = 0, mermaAntesTot = 0, mermaDespuesTot = 0;
   let fuera = 0, dentro = 0, cedisTot = 0, brisaTot = 0, depositoTot = 0;
+  let conAclaraciones = 0;
   ecoList.forEach(function(eco){
     const a = latestAudit(eco);
     if(!a) return;
@@ -634,6 +645,7 @@ function aggregateFor(ecoList){
     cedisTot += Number(acl.cedisConfianza)||0;
     brisaTot += Number(acl.brisa)||0;
     depositoTot += Number(acl.depositoRecuperacion)||0;
+    if(tieneAclaraciones(a.folio)) conAclaraciones++;
   });
   return {
     total: ecoList.length,
@@ -642,9 +654,10 @@ function aggregateFor(ecoList){
     fuera: fuera,
     dentro: dentro,
     pctAntes: ventaTot ? mermaAntesTot/ventaTot : null,
-    pctDespues: ventaTot ? mermaDespuesTot/ventaTot : null,
+    pctDespues: (conAclaraciones && ventaTot) ? mermaDespuesTot/ventaTot : null,
     mermaAntesTot: mermaAntesTot,
     mermaDespuesTot: mermaDespuesTot,
+    conAclaraciones: conAclaraciones,
     cedisTot: cedisTot, brisaTot: brisaTot, depositoTot: depositoTot
   };
 }
@@ -677,8 +690,8 @@ function pctPair(antes, despues){
   const ca = va==='s/d' ? 'sd' : pctClass(antes);
   const cd = vd==='s/d' ? 'sd' : pctClass(despues);
   return '<div class="pct-pair">' +
-    '<div class="pp-item"><span class="pp-lbl">Antes</span><span class="pp-val ' + ca + '">' + va + '</span></div>' +
-    '<div class="pp-item"><span class="pp-lbl">Después</span><span class="pp-val ' + cd + '">' + vd + '</span></div>' +
+    '<div class="pp-item"><span class="pp-lbl">Inicial</span><span class="pp-val ' + ca + '">' + va + '</span></div>' +
+    '<div class="pp-item"><span class="pp-lbl">Final</span><span class="pp-val ' + cd + '">' + vd + '</span></div>' +
     '</div>';
 }
 function aclSummaryText(cedis, brisa, deposito){
@@ -788,7 +801,7 @@ function cleanOverviewHtml(agg, title){
     '<div>' +
       '<div class="main-label">Merma actual · ' + escapeHtml(title) + '</div>' +
       '<div class="main-value" style="color:var(--' + (cls==='ok'?'ok':cls==='warn'?'warn':'bad') + ')">' + fmtPct(agg.pctDespues) + '</div>' +
-      '<div class="main-note">Objetivo ' + fmtPct(OBJETIVO_MERMA) + ' · resultado después de aclaraciones</div>' +
+      '<div class="main-note">Objetivo ' + fmtPct(OBJETIVO_MERMA) + ' · resultado final, con aclaraciones</div>' +
     '</div>' +
     '<div class="clean-change">' +
       '<div class="change-label">Efecto de aclaraciones</div>' +
@@ -810,7 +823,7 @@ function priorityCleanHtml(ecos, limit){
   if(!items.length) return '';
   let rows='';
   items.forEach(function(x){
-    const a=x.audit, desp=pctMermaDespues(a), cls=pctClass(desp);
+    const a=x.audit, desp=pctDespuesDisplay(a), cls=pctClass(desp);
     rows += '<tr onclick="goTienda(' + x.eco + ')">' +
       '<td class="primary-cell"><span class="clean-link">' + escapeHtml(x.info.nombre) + '</span><span class="sub-cell">ECO ' + x.eco + ' · ' + escapeHtml(x.info.zona) + '</span></td>' +
       '<td>' + escapeHtml(x.info.region.replace('Veracruz ','')) + '</td>' +
@@ -821,7 +834,7 @@ function priorityCleanHtml(ecos, limit){
   });
   return '<div class="clean-section">' +
     '<div class="clean-section-head"><div class="clean-section-title">Tiendas que requieren atención</div><div class="clean-section-note">Las 7 con mayor afectación en su última auditoría.</div></div>' +
-    '<div class="priority-panel clean-priority"><div class="priority-table"><table class="clean-table"><thead><tr><th>Tienda</th><th>Región</th><th class="num">Antes</th><th class="num">Después</th><th class="num">Aclarado</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
+    '<div class="priority-panel clean-priority"><div class="priority-table"><table class="clean-table"><thead><tr><th>Tienda</th><th>Región</th><th class="num">Inicial</th><th class="num">Final</th><th class="num">Aclarado</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
   '</div>';
 }
 
@@ -843,9 +856,9 @@ function bannerHeader(title, a){
   return '<div class="banner">' +
     '<div class="b-title">' + escapeHtml(title) + '</div>' +
     '<div class="b-pctrow">' +
-      '<div class="b-pctcol"><span class="b-pctlbl">Antes</span><span class="b-pct ' + cls + '">' + fmtPct(a.pctAntes) + '</span></div>' +
+      '<div class="b-pctcol"><span class="b-pctlbl">Inicial</span><span class="b-pct ' + cls + '">' + fmtPct(a.pctAntes) + '</span></div>' +
       '<span class="b-arrow">' + (mejoro?'→':'') + '</span>' +
-      '<div class="b-pctcol"><span class="b-pctlbl">Después</span><span class="b-pct sm ' + clsD + '">' + fmtPct(a.pctDespues) + '</span></div>' +
+      '<div class="b-pctcol"><span class="b-pctlbl">Final</span><span class="b-pct sm ' + clsD + '">' + fmtPct(a.pctDespues) + '</span></div>' +
     '</div>' +
     '<div class="b-sub">' + fmtMoney(a.mermaAntesTot) + ' · ' + a.auditadas + ' de ' + a.total + ' tiendas auditadas</div>' +
     '<div class="b-pills">' + pills + '</div>' +
@@ -918,7 +931,7 @@ function storeRowsForZona(region, zona){
     rows += '<span class="store-name" onclick="goTienda(' + eco + ')">' + escapeHtml(info.nombre) + '</span>';
     rows += '<span class="store-spacer"></span>';
     if(veces) rows += '<span class="store-badge">' + veces + 'x</span>';
-    if(a) rows += pctPair(Number(a.pctMerma), pctMermaDespues(a));
+    if(a) rows += pctPair(Number(a.pctMerma), pctDespuesDisplay(a));
     else rows += pctPair(null, null);
     rows += '</div>';
     if(aclTxt) rows += '<div class="store-acl-line">' + escapeHtml(aclTxt) + '</div>';
@@ -959,7 +972,7 @@ function viewZona(region, zona){
     const info = catalogByEco[eco];
     const a = latestAudit(eco);
     const pctAntes = a ? Number(a.pctMerma) : null;
-    const pctDesp = a ? pctMermaDespues(a) : null;
+    const pctDesp = a ? pctDespuesDisplay(a) : null;
     rows += '<tr onclick="goTienda(' + eco + ')">' +
       '<td>' + escapeHtml(info.nombre) + '<div style="color:var(--sub);font-size:11.5px;">ECO ' + eco + ' · ' + escapeHtml(info.supervisor) + '</div></td>' +
       '<td>' + (a ? fmtFecha(a.fecha) : '<span class="pill neutral">Sin auditar</span>') + '</td>' +
@@ -969,7 +982,7 @@ function viewZona(region, zona){
       '</tr>';
   });
   html += '<div class="panel"><div class="table-wrap"><table><thead><tr>' +
-    '<th>Tienda</th><th>Última auditoría</th><th>% Merma antes</th><th>% Merma después</th><th>Aclarado</th>' +
+    '<th>Tienda</th><th>Última auditoría</th><th>% Merma inicial</th><th>% Merma final</th><th>Aclarado</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   return html;
 }
@@ -1022,8 +1035,8 @@ function viewTienda(eco, folio){
   html += '<span class="status-msg" id="aclStatus" style="margin-left:10px;"></span>';
 
   html += '<div class="result-strip">';
-  html += resultBox('before', 'Merma antes de aclaraciones', fmtMoney(audit.totalMerma), fmtPct(Number(audit.pctMerma)));
-  html += resultBox('after', 'Merma después de aclaraciones', fmtMoney(mDespues), fmtPct(pDespues));
+  html += resultBox('before', 'Merma inicial', fmtMoney(audit.totalMerma), fmtPct(Number(audit.pctMerma)));
+  html += resultBox('after', 'Merma final (con aclaraciones)', fmtMoney(mDespues), fmtPct(pDespues));
   html += '</div>';
 
   html += '<div style="margin-top:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
