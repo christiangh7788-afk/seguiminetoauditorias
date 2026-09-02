@@ -74,7 +74,7 @@ h1 small{display:block;color:var(--sub);font-weight:450;font-size:12.5px;margin-
 .compania-cols .store-row{padding:8px 12px 8px 28px;}
 .compania-cols .pp-lbl{font-size:9px;}
 .compania-cols .pp-val{font-size:12px;}
-.compania-cols .store-acl,.compania-cols .acc-acl{display:none;}
+.compania-cols .store-acl-line{display:block;}
 
 .card{
   background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -179,13 +179,15 @@ table tbody tr:hover{background:var(--panel2);}
 .pp-val.sd{color:var(--sub);font-weight:450;}
 .acc-body{padding:2px 0 6px;}
 .store-row{
-  display:flex;align-items:center;gap:10px;padding:9px 16px 9px 38px;font-size:13.5px;
+  display:block;padding:9px 16px 9px 38px;font-size:13.5px;
 }
+.store-row-top{display:flex;align-items:center;gap:10px;}
 .store-row:hover{background:var(--panel2);}
 .store-name{color:#2a5aa8;cursor:pointer;font-weight:500;}
 .store-name:hover{text-decoration:underline;}
 .store-spacer{flex:1;}
 .store-acl{flex:1;padding-left:10px;color:var(--sub);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.store-acl-line{margin-top:4px;color:var(--sub);font-size:11.5px;font-weight:500;}
 .store-badge{
   background:rgba(193,78,52,.1);color:var(--bad);font-size:11.5px;font-weight:650;
   padding:2px 9px;border-radius:20px;
@@ -688,6 +690,12 @@ function aclSummaryText(cedis, brisa, deposito){
   if(deposito) parts.push('Depósito ' + fmtMoney(deposito));
   return parts.join(' · ');
 }
+function aclSummaryWithTotal(cedis, brisa, deposito){
+  const base = aclSummaryText(cedis, brisa, deposito);
+  if(!base) return '';
+  const total = (Number(cedis)||0) + (Number(brisa)||0) + (Number(deposito)||0);
+  return base + ' · Total ' + fmtMoney(total);
+}
 function escapeHtml(s){
   return String(s==null?'':s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -904,13 +912,16 @@ function storeRowsForZona(region, zona){
     const list = AUDITORIAS_BY_ECO[eco] || [];
     const a = list[0];
     const veces = list.length;
+    const aclTxt = a ? aclSummaryWithTotal(aclFor(a.folio).cedisConfianza, aclFor(a.folio).brisa, aclFor(a.folio).depositoRecuperacion) : '';
     rows += '<div class="store-row">';
+    rows += '<div class="store-row-top">';
     rows += '<span class="store-name" onclick="goTienda(' + eco + ')">' + escapeHtml(info.nombre) + '</span>';
-    const aclTxt = a ? aclSummaryText(aclFor(a.folio).cedisConfianza, aclFor(a.folio).brisa, aclFor(a.folio).depositoRecuperacion) : '';
-    rows += '<span class="store-acl">' + escapeHtml(aclTxt) + '</span>';
+    rows += '<span class="store-spacer"></span>';
     if(veces) rows += '<span class="store-badge">' + veces + 'x</span>';
     if(a) rows += pctPair(Number(a.pctMerma), pctMermaDespues(a));
     else rows += pctPair(null, null);
+    rows += '</div>';
+    if(aclTxt) rows += '<div class="store-acl-line">' + escapeHtml(aclTxt) + '</div>';
     rows += '</div>';
   });
   return rows || '<div class="empty">Sin tiendas.</div>';
