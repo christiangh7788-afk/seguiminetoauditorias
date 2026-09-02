@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditorías · Cía Veracruz</title>
+<style>
+:root{
+  --bg:#f4f6f8;
+  --panel:#ffffff;
+  --panel2:#eef1f4;
+  --line:#dbe1e7;
+  --text:#1c2733;
+  --sub:#66788c;
+  --accent:#b8791f;
+  --accent2:#1f8f77;
+  --bad:#c14e34;
+  --ok:#1f8f77;
+  --warn:#b8791f;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+}
+.app{max-width:1180px;margin:0 auto;padding:20px 18px 60px;}
+header.top{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;margin-bottom:18px;flex-wrap:wrap;
+}
+h1{
+  font-size:20px;font-weight:650;margin:0;letter-spacing:.2px;
+}
+h1 small{display:block;color:var(--sub);font-weight:450;font-size:12.5px;margin-top:2px;}
+.crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:14px 0 18px;font-size:13px;color:var(--sub);}
+.crumbs .seg{cursor:pointer;padding:4px 9px;border-radius:6px;}
+.crumbs .seg:hover{background:var(--panel2);color:var(--text);}
+.crumbs .seg.current{color:var(--text);font-weight:600;background:var(--panel2);}
+.crumbs .sep{opacity:.5;}
+
+.btn{
+  background:var(--panel2);border:1px solid var(--line);color:var(--text);
+  padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.btn:hover{border-color:var(--accent);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#241a05;font-weight:600;}
+.btn.primary:hover{filter:brightness(1.06);}
+.btn.small{padding:5px 10px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:default;}
+
+.grid{display:grid;gap:12px;}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:900px){.grid.cols-3,.grid.cols-4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.grid.cols-3,.grid.cols-4{grid-template-columns:1fr;}}
+
+.compania-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start;}
+@media(max-width:960px){.compania-cols{grid-template-columns:1fr;}}
+.compania-cols .col-region{min-width:0;}
+.compania-cols .banner{padding:18px 18px 16px;}
+.compania-cols .b-pct{font-size:24px;}
+.compania-cols .b-pct.sm{font-size:16px;}
+.compania-cols .b-pctlbl{font-size:9px;}
+.compania-cols .b-pctrow{gap:10px;}
+.compania-cols .acc-name{font-size:13px;}
+.compania-cols .acc-sup{display:block;font-size:10.5px;margin-left:0;}
+.compania-cols .acc-head{padding:10px 12px;flex-wrap:wrap;}
+.compania-cols .store-row{padding:8px 12px 8px 28px;}
+.compania-cols .pp-lbl{font-size:9px;}
+.compania-cols .pp-val{font-size:12px;}
+.compania-cols .store-acl,.compania-cols .acc-acl{display:none;}
+
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 16px;cursor:pointer;transition:border-color .15s;
+}
+.card:hover{border-color:var(--accent);}
+.card .name{font-size:15px;font-weight:600;margin-bottom:10px;}
+.card .stat-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;}
+.card .stat-label{color:var(--sub);font-size:12px;}
+.card .stat-val{font-size:14px;font-weight:600;}
+.pill{
+  display:inline-block;padding:2px 8px;border-radius:20px;font-size:11.5px;font-weight:600;
+}
+.pill.ok{background:rgba(74,194,168,.15);color:var(--ok);}
+.pill.warn{background:rgba(224,169,74,.15);color:var(--warn);}
+.pill.bad{background:rgba(224,103,74,.15);color:var(--bad);}
+.pill.neutral{background:var(--panel2);color:var(--sub);}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+table th{
+  text-align:left;color:var(--sub);font-weight:600;font-size:11.5px;
+  padding:8px 10px;border-bottom:1px solid var(--line);
+}
+table td{padding:9px 10px;border-bottom:1px solid var(--line);}
+table tbody tr{cursor:pointer;}
+table tbody tr:hover{background:var(--panel2);}
+
+.summary-strip{
+  display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+}
+.summary-strip .box{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px 16px;flex:1;min-width:150px;
+}
+.summary-strip .box .lbl{color:var(--sub);font-size:11.5px;margin-bottom:4px;}
+.summary-strip .box .val{font-size:19px;font-weight:650;}
+
+/* ---- Encabezado tipo banner (región / zona) ---- */
+.banner{
+  background:linear-gradient(135deg,#1c3352,#16243c 60%,#1c3352);
+  border-radius:var(--radius);
+  padding:22px 24px 20px;
+  color:#eef2f7;
+  margin-bottom:16px;
+  position:relative;
+  overflow:hidden;
+}
+.banner::after{
+  content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;
+  background:radial-gradient(circle,rgba(184,121,31,.35),transparent 70%);
+}
+.banner .b-title{font-size:14px;color:#aebdd1;font-weight:600;position:relative;}
+.banner .b-pctrow{display:flex;align-items:flex-end;gap:14px;margin:6px 0 4px;position:relative;}
+.banner .b-pctcol{display:flex;flex-direction:column;}
+.banner .b-pctlbl{font-size:10px;color:#7f92a8;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
+.banner .b-pct{font-size:34px;font-weight:750;line-height:1;}
+.banner .b-pct.sm{font-size:22px;}
+.banner .b-pct.ok{color:#6fe0c0;}
+.banner .b-pct.warn{color:#f0c26a;}
+.banner .b-pct.bad{color:#f3a58f;}
+.banner .b-arrow{color:#5c6f85;font-size:18px;padding-bottom:4px;}
+.banner .b-sub{font-size:12.5px;color:#94a6bc;position:relative;}
+.banner .b-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;position:relative;}
+.banner .b-pill{
+  padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.08);color:#dbe4ef;
+}
+.banner .b-pill.bad{background:rgba(243,165,143,.18);color:#f3a58f;}
+.banner .b-pill.ok{background:rgba(111,224,192,.18);color:#6fe0c0;}
+.banner .b-pill.neutral{background:rgba(255,255,255,.1);color:#c7d2e0;}
+
+/* ---- Acordeón de zonas ---- */
+.accordion{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+.acc-item{border-bottom:1px solid var(--line);}
+.acc-item:last-child{border-bottom:none;}
+.acc-head{
+  display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;
+}
+.acc-head:hover{background:var(--panel2);}
+.acc-item.open .acc-head{background:var(--panel2);border-left:3px solid var(--accent);}
+.acc-arrow{color:var(--sub);font-size:11px;width:12px;flex-shrink:0;}
+.acc-name{font-weight:650;font-size:14px;}
+.acc-sup{color:var(--sub);font-size:12px;font-weight:450;margin-left:6px;}
+.acc-spacer{flex:1;}
+.acc-acl{flex:1;padding-left:10px;color:var(--sub);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acc-count{
+  background:rgba(193,78,52,.1);color:var(--bad);font-size:12px;font-weight:650;
+  padding:3px 11px;border-radius:20px;margin-right:8px;
+}
+.acc-count.neutral{background:var(--panel2);color:var(--sub);}
+.acc-pct{font-size:13.5px;font-weight:700;min-width:60px;text-align:right;}
+.acc-pct.ok{color:var(--ok);}
+.acc-pct.warn{color:var(--warn);}
+.acc-pct.bad{color:var(--bad);}
+.pct-pair{display:flex;align-items:center;gap:16px;margin-right:4px;}
+.pp-item{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;}
+.pp-lbl{font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.3px;}
+.pp-val{font-size:13px;font-weight:700;}
+.pp-val.ok{color:var(--ok);}
+.pp-val.warn{color:var(--warn);}
+.pp-val.bad{color:var(--bad);}
+.pp-val.sd{color:var(--sub);font-weight:450;}
+.acc-body{padding:2px 0 6px;}
+.store-row{
+  display:flex;align-items:center;gap:10px;padding:9px 16px 9px 38px;font-size:13.5px;
+}
+.store-row:hover{background:var(--panel2);}
+.store-name{color:#2a5aa8;cursor:pointer;font-weight:500;}
+.store-name:hover{text-decoration:underline;}
+.store-spacer{flex:1;}
+.store-acl{flex:1;padding-left:10px;color:var(--sub);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.store-badge{
+  background:rgba(193,78,52,.1);color:var(--bad);font-size:11.5px;font-weight:650;
+  padding:2px 9px;border-radius:20px;
+}
+.store-pct{font-size:13px;font-weight:650;min-width:55px;text-align:right;}
+.store-pct.sd{color:var(--sub);font-weight:450;}
+
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;margin-bottom:16px;
+}
+.panel h2{font-size:16px;margin:0 0 14px;}
+.panel h3{font-size:13px;color:var(--sub);margin:0 0 10px;text-transform:none;font-weight:600;}
+
+.field-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
+@media(max-width:700px){.field-grid{grid-template-columns:1fr;}}
+.field{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;}
+.field .lbl{color:var(--sub);font-size:11.5px;margin-bottom:5px;}
+.field .val{font-size:17px;font-weight:650;}
+.field .val.neg{color:var(--bad);}
+.field .val.pos{color:var(--ok);}
+
+.acl-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:12px;}
+@media(max-width:700px){.acl-grid{grid-template-columns:1fr;}}
+.acl-box{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px;}
+.acl-box label{display:block;color:var(--sub);font-size:12px;margin-bottom:7px;font-weight:600;}
+.acl-box input{
+  width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;
+  color:var(--text);padding:9px 10px;font-size:15px;font-weight:600;
+}
+.acl-box input:focus{outline:none;border-color:var(--accent);}
+
+.result-strip{
+  display:flex;gap:14px;margin-top:16px;flex-wrap:wrap;
+}
+.result-strip .rbox{
+  flex:1;min-width:180px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:14px 16px;
+}
+.result-strip .rbox .lbl{color:var(--sub);font-size:11.5px;margin-bottom:5px;}
+.result-strip .rbox .val{font-size:20px;font-weight:700;}
+.result-strip .rbox.before{border-left:3px solid var(--sub);}
+.result-strip .rbox.after{border-left:3px solid var(--accent2);}
+
+.hist-list{list-style:none;margin:0;padding:0;font-size:12.5px;}
+.hist-list li{
+  padding:8px 0;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;color:var(--sub);
+}
+.hist-list li span.who{color:var(--text);}
+.edit-badge{
+  display:inline-flex;align-items:center;gap:6px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--sub);
+}
+.edit-badge b{color:var(--text);}
+
+.upload-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+#fileInput{display:none;}
+.status-msg{font-size:12.5px;color:var(--sub);}
+.status-msg.ok{color:var(--ok);}
+.status-msg.bad{color:var(--bad);}
+
+.audit-select{
+  background:var(--panel2);border:1px solid var(--line);color:var(--text);
+  padding:8px 10px;border-radius:8px;font-size:13px;
+}
+.empty{color:var(--sub);font-size:13px;padding:30px 0;text-align:center;}
+.loading{color:var(--sub);font-size:13px;padding:40px 0;text-align:center;}
+
+
+/* ===== MEJORA EJECUTIVA 2026 ===== */
+:root{
+  --neto-navy:#12233f;
+  --neto-navy-2:#1a3359;
+  --neto-orange:#f58220;
+  --soft-blue:#edf3f9;
+  --shadow:0 10px 28px rgba(20,39,67,.08);
+}
+body{background:#f5f7fa;}
+.app{max-width:1440px;padding:22px 24px 64px;}
+header.top{
+  background:linear-gradient(120deg,var(--neto-navy),var(--neto-navy-2));
+  border-radius:18px;padding:20px 22px;margin-bottom:16px;box-shadow:var(--shadow);
+  color:#fff;position:relative;overflow:hidden;
+}
+header.top:after{content:'';position:absolute;width:220px;height:220px;border-radius:50%;right:-90px;top:-130px;background:rgba(245,130,32,.18);}
+header.top h1{font-size:24px;position:relative;z-index:1;}
+header.top h1 small{color:#c8d5e6;font-size:12.5px;margin-top:4px;}
+header.top .upload-bar{position:relative;z-index:1;}
+header.top .btn{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:white;}
+header.top .btn:hover{border-color:var(--neto-orange);background:rgba(255,255,255,.15);}
+header.top .status-msg{color:#dfe8f3;}
+
+.dashboard-tools{display:grid;grid-template-columns:minmax(280px,1fr) auto auto;gap:10px;align-items:center;margin:0 0 16px;}
+.search-wrap{position:relative;}
+.search-wrap input{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px 11px 38px;font-size:13.5px;outline:none;box-shadow:0 3px 12px rgba(20,39,67,.04);}
+.search-wrap input:focus{border-color:#8aa9ce;box-shadow:0 0 0 3px rgba(42,90,168,.08);}
+.search-icon{position:absolute;left:13px;top:10px;color:var(--sub);font-size:15px;}
+.filter-select{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;color:var(--text);font-size:13px;min-width:150px;}
+.btn.ghost{background:white;border-color:var(--line);}
+@media(max-width:760px){.dashboard-tools{grid-template-columns:1fr 1fr}.search-wrap{grid-column:1/-1}.filter-select{min-width:0;width:100%;}}
+
+.crumbs{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 9px;margin:0 0 16px;box-shadow:0 2px 8px rgba(20,39,67,.03);}
+
+.executive-hero{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px;}
+.hero-main{background:linear-gradient(135deg,#10213d,#17375f);color:#fff;border-radius:18px;padding:22px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.hero-main:after{content:'';position:absolute;width:260px;height:260px;border-radius:50%;right:-120px;bottom:-150px;background:rgba(245,130,32,.18);}
+.hero-eyebrow{color:#9eb2ca;font-size:11px;text-transform:uppercase;letter-spacing:.9px;font-weight:700;}
+.hero-value{font-size:42px;font-weight:800;line-height:1;margin:9px 0 7px;letter-spacing:-1px;}
+.hero-sub{font-size:13px;color:#c5d3e3;}
+.hero-progress{height:9px;background:rgba(255,255,255,.12);border-radius:20px;overflow:hidden;margin-top:18px;}
+.hero-progress span{display:block;height:100%;background:linear-gradient(90deg,#f58220,#ffb55f);border-radius:inherit;}
+.hero-side{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.mini-kpi{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px 16px;box-shadow:0 5px 18px rgba(20,39,67,.05);}
+.mini-kpi .k-label{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.35px;font-weight:650;}
+.mini-kpi .k-value{font-size:23px;font-weight:800;margin-top:5px;letter-spacing:-.3px;}
+.mini-kpi .k-note{font-size:11.5px;color:var(--sub);margin-top:4px;}
+.mini-kpi.bad .k-value{color:var(--bad)}.mini-kpi.ok .k-value{color:var(--ok)}.mini-kpi.warn .k-value{color:var(--warn)}
+@media(max-width:900px){.executive-hero{grid-template-columns:1fr}.hero-side{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:660px){.hero-side{grid-template-columns:1fr 1fr}.hero-value{font-size:34px}}
+
+.summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.summary-strip .box{min-width:0;border-radius:14px;padding:14px 15px;box-shadow:0 4px 14px rgba(20,39,67,.04);}
+.summary-strip .box .val{font-size:22px;}
+@media(max-width:800px){.summary-strip{grid-template-columns:1fr 1fr}}
+
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:22px 0 10px;}
+.section-title{font-size:16px;font-weight:800;color:var(--neto-navy);}
+.section-note{font-size:11.5px;color:var(--sub);}
+
+.region-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.region-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 5px 16px rgba(20,39,67,.045);cursor:pointer;transition:.18s ease;}
+.region-card:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(20,39,67,.09);border-color:#b8c7d9;}
+.region-card .r-top{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+.region-card .r-name{font-weight:800;font-size:14px;color:var(--neto-navy);}
+.region-card .r-merma{font-size:24px;font-weight:800;margin:10px 0 4px;}
+.region-card .r-meta{display:flex;justify-content:space-between;color:var(--sub);font-size:11.5px;gap:8px;}
+.region-card .r-bar{height:6px;background:#edf0f4;border-radius:20px;margin-top:12px;overflow:hidden;}
+.region-card .r-bar span{height:100%;display:block;background:var(--neto-orange);border-radius:inherit;}
+@media(max-width:820px){.region-overview{grid-template-columns:1fr}}
+
+.priority-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 5px 16px rgba(20,39,67,.045);margin-bottom:18px;}
+.priority-table{overflow:auto;}
+.priority-table table{min-width:760px;}
+.priority-table td:first-child{font-weight:650;color:#234f8d;}
+.rank-num{width:25px;height:25px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#f1f4f8;font-size:11px;font-weight:800;color:var(--sub);}
+
+.compania-cols{gap:14px;}
+.banner{border-radius:15px;box-shadow:0 6px 18px rgba(20,39,67,.09);}
+.accordion{border-radius:14px;box-shadow:0 4px 14px rgba(20,39,67,.035);}
+.acc-head{min-height:58px;}
+.store-row{min-height:48px;}
+.panel{border-radius:16px;box-shadow:0 5px 18px rgba(20,39,67,.05);}
+.table-wrap{overflow:auto;border-radius:12px;}
+table{min-width:680px;}
+table thead th{background:#f7f9fb;position:sticky;top:0;z-index:1;}
+
+.status-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.status-chip:before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.status-chip.ok{background:rgba(31,143,119,.1);color:var(--ok)}
+.status-chip.bad{background:rgba(193,78,52,.1);color:var(--bad)}
+.status-chip.neutral{background:#eef1f4;color:var(--sub)}
+
+.no-results{background:#fff;border:1px dashed #cbd4de;border-radius:14px;padding:28px;text-align:center;color:var(--sub);}
+
+
+
+/* ===== VERSIÓN LIMPIA / EJECUTIVA ===== */
+.clean-overview{
+  background:#fff;border:1px solid var(--line);border-radius:16px;
+  padding:18px 20px;margin-bottom:16px;box-shadow:0 4px 14px rgba(20,39,67,.04);
+  display:grid;grid-template-columns:minmax(210px,.9fr) minmax(220px,1fr) minmax(380px,1.7fr);
+  gap:20px;align-items:center;
+}
+.clean-overview .main-label{font-size:11px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.clean-overview .main-value{font-size:38px;line-height:1;font-weight:800;margin:7px 0 5px;letter-spacing:-1px;}
+.clean-overview .main-note{font-size:12px;color:var(--sub);}
+.clean-change{padding-left:20px;border-left:1px solid var(--line);}
+.clean-change .change-label{font-size:11px;color:var(--sub);text-transform:uppercase;font-weight:700;letter-spacing:.4px;}
+.clean-change .change-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.clean-change .change-before,.clean-change .change-after{font-size:20px;font-weight:800;}
+.clean-change .change-arrow{color:var(--sub);font-size:18px;}
+.clean-metrics{display:grid;grid-template-columns:repeat(3,1fr);border-left:1px solid var(--line);}
+.clean-metric{padding:3px 16px;border-right:1px solid var(--line);}
+.clean-metric:last-child{border-right:0;}
+.clean-metric .m-value{font-size:20px;font-weight:800;line-height:1.1;}
+.clean-metric .m-label{font-size:11px;color:var(--sub);margin-top:5px;}
+.clean-metric.bad .m-value{color:var(--bad)}
+.clean-metric.ok .m-value{color:var(--ok)}
+.clean-metric.warn .m-value{color:var(--warn)}
+
+.clean-section{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 3px 12px rgba(20,39,67,.035);}
+.clean-section-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.clean-section-title{font-size:14px;font-weight:800;color:var(--neto-navy);}
+.clean-section-note{font-size:11.5px;color:var(--sub);}
+.clean-table-wrap{overflow:auto;}
+.clean-table{min-width:760px;}
+.clean-table th{background:#f8fafc;padding:9px 12px;}
+.clean-table td{padding:10px 12px;}
+.clean-table tbody tr:last-child td{border-bottom:0;}
+.clean-table .primary-cell{font-weight:700;color:var(--neto-navy);}
+.clean-table .sub-cell{display:block;color:var(--sub);font-size:10.5px;margin-top:2px;font-weight:450;}
+.clean-table .num{text-align:right;white-space:nowrap;}
+.clean-table .center{text-align:center;white-space:nowrap;}
+.clean-link{color:#2a5aa8;font-weight:700;cursor:pointer;}
+.clean-link:hover{text-decoration:underline;}
+.clean-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+.clean-status:before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;}
+.clean-status.ok{color:var(--ok)}.clean-status.warn{color:var(--warn)}.clean-status.bad{color:var(--bad)}.clean-status.neutral{color:var(--sub)}
+.priority-panel.clean-priority{border:0;border-radius:0;box-shadow:none;margin:0;padding:0;}
+.priority-panel.clean-priority .priority-table table{min-width:760px;}
+
+/* En la portada eliminamos redundancias visuales. */
+.executive-hero,.summary-strip,.region-overview{display:none;}
+
+@media(max-width:980px){
+  .clean-overview{grid-template-columns:1fr 1fr;}
+  .clean-metrics{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);padding-top:14px;}
+  .clean-change{border-left:1px solid var(--line);}
+}
+@media(max-width:620px){
+  .clean-overview{grid-template-columns:1fr;padding:16px;gap:14px;}
+  .clean-change{border-left:0;border-top:1px solid var(--line);padding:14px 0 0;}
+  .clean-metrics{grid-template-columns:1fr 1fr 1fr;}
+  .clean-metric{padding:3px 9px;}
+  .clean-overview .main-value{font-size:32px;}
+  .clean-section-head{align-items:flex-start;flex-direction:column;gap:3px;}
+}
+
+
+.original-region-head{margin-top:18px;margin-bottom:10px;}
+.compania-cols + .clean-section{margin-top:22px;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <h1>Seguimiento de Auditorías<small>Compañía Veracruz · Gerencia de Operaciones</small></h1>
+    <div class="upload-bar">
+      <input type="file" id="fileInput" accept=".xls,.xlsx">
+      <button class="btn" id="btnUpload">Subir auditorías del día</button>
+      <span class="status-msg" id="uploadStatus"></span>
+    </div>
+  </header>
+  <div class="dashboard-tools">
+    <div class="search-wrap"><span class="search-icon">⌕</span><input id="globalSearch" type="search" placeholder="Buscar por tienda, ECO, zona o coach…" autocomplete="off"></div>
+    <select id="statusFilter" class="filter-select" aria-label="Filtrar por estatus">
+      <option value="all">Todos los estatus</option>
+      <option value="bad">Fuera de objetivo</option>
+      <option value="ok">Dentro de objetivo</option>
+      <option value="unaudited">Sin auditar</option>
+    </select>
+    <button class="btn ghost" id="btnClearFilters">Limpiar filtros</button>
+  </div>
+  <div id="crumbs" class="crumbs"></div>
+  <div id="content"><div class="loading">Cargando datos…</div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* =====================================================================
+   CONFIGURACIÓN
+   ===================================================================== */
+// Pega aquí la URL /exec que te da Apps Script al implementar Code.gs
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwEBiUcQORSTRlcjd-q79Euf7bQsdtlvW5MMAjZzlA9EjX0cd8AAyEi0-_D9CYcMJhE/exec';
+
+const OBJETIVO_MERMA = -0.0065; // referencia, igual que en Control de Merma
+
+/* =====================================================================
+   CATÁLOGO (246 tiendas activas) — [eco, nombre, region, zona, supervisor]
+   ===================================================================== */
+const CATALOG = [[2865,"Alamo","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[2945,"Cerro Azul","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[1009,"Cerro Azul La Curva","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[1648,"COLATLAN","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[1411,"Ixcatepec","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[1316,"Ixhuatlan Centro","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[9049,"Llano En Medio","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[782,"Tepetzintla","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[2856,"Alvarado","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[8962,"Alvarado Central","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[9094,"Alvarado Mercado","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[2853,"Benito Juarez","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[2855,"Carlos A. Carrillo","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[1530,"CARRILLO CRUCERO","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[3455,"Cosamaloapan","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[447,"Cosamaloapan Mercado","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[1740,"LA LAGUNA 2","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[2845,"Tlacotlalpan","Veracruz Sur","ALVARADO","PERALTA DOMINGUEZ ALMA DELIA"],[821,"Boca del Rio Centro","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[565,"Calle 8 Col Carranza","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[737,"El morro Veracruz","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[932,"J.B. Lobos","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[8927,"Juan Soto","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[9029,"Pages","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[1261,"Vistamar","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[1502,"Av. 6 Cordoba","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[3544,"Cordoba Avenida 11","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[7231,"Cordoba Mercado","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[8964,"Cordoba San Miguel","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[9014,"Huatusco","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[1742,"MONTE BLANCO CENTRO","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[471,"Paso del Macho","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[571,"Potrero Nuevo","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[443,"Totutla","Veracruz Sur","CAFETALERA","MARGARITA FABIAN ARROYO"],[415,"Actopan San Francisco","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[702,"Cardel Revolucion","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[705,"Carrizal Zapata","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[9019,"Cempoala","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[8940,"Mercadito Cardel","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[853,"Palma Sola Veracruz","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[426,"Paso De Ovejas Insurgentes 1","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[1349,"Tierra Colorada Ver","Veracruz Centro","CARDEL","GAMEZ MOLINOS ALEJANDRA MONSERRAT"],[3371,"Coatepec Centro","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[272,"Coatepec Mercado","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[812,"Cosautlan Veracruz","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[8939,"Galván","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[9021,"Lagos","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[9011,"Mariano Abasolo","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[135,"Martires del 28","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[125,"Teocelo 5 de Mayo","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[504,"TLALNEHUAYOCAN","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[1237,"Tlaltetela","Veracruz Centro","COATEPEC","KARLA MERCEDES FERNANDEZ ZAVALETA"],[1583,"Camerino Z Mendoza","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[335,"Cosolapa Mercado","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[259,"Jalapilla","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[435,"La Perla Centro","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[1012,"Maltrata","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[7230,"Orizaba Cañada","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[1205,"Tequila","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[1153,"Tezonapa","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[703,"Carranza 5 de Mayo","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[735,"Casitas Veracruz","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[673,"Independencia Martinez","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[260,"Juchique","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[736,"Maria de la torre","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[8932,"Martinez De La Torre","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[2867,"Misantla","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[1016,"MISANTLA E ALATRISTE","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[637,"Nautla Maracaibo","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[704,"Revolución San Rafael","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[8935,"Vega De Alatorre","Veracruz Centro","COSTA ESMERALDA","GUEVARA RODRIGUEZ MARIELA"],[1395,"Ayotzintepec","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[776,"Cervecera","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[515,"LOS NARANJOS VERACRUZ","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[1844,"SAN BARTOLO","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[315,"Temascal","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[7235,"Tierra Blanca","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[270,"Tierra Blanca Mercado","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[1438,"Tierra Blanca Plaza Centro","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[8957,"Tres Valles","Veracruz Sur","CUENCA","MONFIL GARCIA LUIS GUSTAVO"],[6460,"Gutierrez Zamora","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[9037,"La Burrita Mercado","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[1321,"La petromex","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[9080,"Mariano Arista","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[223,"Paseo la burrita","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[541,"Tecolutla","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[8960,"Zamora Veracruz","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[1020,"Amapolas Puerto","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[1545,"ARISTA Y GLADIOLAS","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[1002,"Dos Lomas","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[8961,"Lazaro Cardenas","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[1392,"Manlio Benito Juarez","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[2863,"Soledad De Doblado","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[419,"Soledad De Doblado 5 De Mayo","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[886,"Tejeria","Veracruz Centro","HEROICA","LILIANA SANDOVAL GUEVARA"],[1259,"Agua Fria Kiosco","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[9040,"Ceiba","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[4509,"Huauchinango","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[9067,"La Uno 12 De Diciembre","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[1307,"Mecapalapa Puebla","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[879,"Metlaltoyuca","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[915,"Nuevo Necaxa","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[3114,"Xicotepec","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[1683,"RAFAEL CRAVIOTO","Veracruz Norte","HUAUCHINANGO","SALVADOR MARQUEZ POZOS"],[671,"Atlapexco","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[1497,"CHICONTEPEC CENTRO","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[787,"Chicontepec Veracruz","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[1236,"Huejutla","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[1597,"HUEJUTLA CHACATITLA","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[1426,"Huejutla Mercado","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[721,"Jaltocan","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[834,"Orizatlan Hidalgo","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[1552,"TEHUETLAN","Veracruz Norte","HUEJUTLA","SALGUERO FLORES RUBISEL"],[371,"Acatlan Centro","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[1515,"AMATLAN REYES","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[265,"Camalote","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[1659,"CUICHAPA CENTRO","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[877,"Cuitlahuac san pedro","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[1555,"JOACHIN CENTRO","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[313,"La Mixtequilla","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[8953,"Piedras Negras","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[436,"Tlalixcoyan 1","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[1247,"Yanga Calle 8","Veracruz Sur","ORIZABA","MARÍA DE LA CRUZ MARTÍNEZ UTRERA"],[1535,"AGUA DULCE PARQUE","Veracruz Norte","PAPANTLA","VACANTE"],[1283,"Coxquihui Hidalgo y Rayón","Veracruz Norte","PAPANTLA","VACANTE"],[8949,"Coyutla","Veracruz Norte","PAPANTLA","VACANTE"],[254,"Entabladero Benito Juarez","Veracruz Norte","PAPANTLA","VACANTE"],[652,"Filomeno mata 5 de mayo","Veracruz Norte","PAPANTLA","VACANTE"],[266,"Huehuetla","Veracruz Norte","PAPANTLA","VACANTE"],[9048,"Nino Artillero","Veracruz Norte","PAPANTLA","VACANTE"],[1152,"Papantla","Veracruz Norte","PAPANTLA","VACANTE"],[236,"Papantla Centro","Veracruz Norte","PAPANTLA","VACANTE"],[502,"Zozocolco Centro","Veracruz Norte","PAPANTLA","VACANTE"],[478,"Aldama Tuxtepec","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[1731,"EL CONEJO","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[147,"Jose Azueta","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[1785,"LOMA BONITA CENTRO","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[333,"Loma Bonita Mercado","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[1235,"Tuxtepec","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[520,"TUXTEPEC CARRANZA","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[734,"Tuxtepec Hidalgo","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[9046,"Tuxtepec Juarez","Veracruz Sur","PIÑERA","VANESSA SANCHEZ BASULTO"],[3555,"Díaz Mirón","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[823,"Intercolonia","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[822,"Matamoros Pinos","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[1145,"Oasis Sonora","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[214,"Playa linda","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[338,"Rio Medio 4","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[1689,"RIO SAN ISIDRO","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[1559,"ROTONDA","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[1264,"Valle Gaviota","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[1292,"Xana","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"],[1504,"ABASTO PLAN DE AYALA","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[9101,"Cazones","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[1652,"KAWATZIN COLONIA","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[1318,"Las vegas obregon","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[1576,"Matamoros Poza Rica","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[1653,"NACIONAL POZA RICA","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[643,"Poza Rica Avila Camacho","Veracruz Norte","POZA RICA","HERNANDEZ SANTES CAROLINA"],[1158,"Reforma Coatzintla","Veracruz Norte","GUTIERREZ ZAMORA","GUERRERO FERMAN SANTOS JAVIER"],[9097,"Tihuatlan","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[566,"Tihuatlan Cuauhtemoc","Veracruz Norte","ALAMO","JHAIR ALBERTO MEJIA FONTES"],[1527,"AMERICA PUENTE MORENO","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[1355,"Anton Lizardo Azueta","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[575,"Cotaxtla Juarez","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[8905,"El Tejar","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[503,"JAMAPA ORIENTE","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[1637,"LOS LAGOS","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[8958,"Paso del Toro","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[562,"Puente moreno","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[1174,"Tortuga Puente Moreno","Veracruz Sur","PUERTO","SANDOVAL GARCIA GUADALUPE"],[1092,"Aldama Libertad","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[1094,"Altamira Laguna","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[986,"Estación Manuel","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[1246,"Madero Santa Elena","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[751,"Mangos Altamira","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[829,"Mante suzuki","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[876,"Panuco Mercado","Veracruz Norte","TAMPICO NORTE","FLORES TREJO ABUNDIO"],[1404,"Tampico calle Heroes Centro","Veracruz Norte","TAMPICO NORTE","FLORES TREJO ABUNDIO"],[875,"Tampico Mercado","Veracruz Norte","TAMPICO NORTE","FLORES TREJO ABUNDIO"],[1129,"Tampico Mercado Norte","Veracruz Norte","TAMPICO NORTE","FLORES TREJO ABUNDIO"],[959,"TAMPICO PALAFOX","Veracruz Norte","TAMPICO NORTE","FLORES TREJO ABUNDIO"],[2860,"16 de Septiembre","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[1412,"El Higo Mercado C","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[592,"Platon Sanchez","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[2858,"Tantoyuca","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[760,"Tantoyuca calle 12 de julio","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[622,"Tempoal","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[1792,"Mi Tantoyuca","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[1732,"Tantoyuca Centro","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[2520,"Altotonga","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[618,"Altotonga Hidalgo","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[337,"Chignautla","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[352,"Hueytamalco","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[121,"Jalacingo","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[9084,"Tezihutlan Hidalgo","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[2920,"Teziutlan","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[9052,"Teziutlan 16 De Septiembre","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[122,"Teziutlan Lerdo","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[2864,"Tlapacoyan","Veracruz Centro","TEZIUTLAN","MOTA RETURETA LAURO OMAR"],[912,"La Cabrilla Tamiahua","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[931,"MERCADO HÉROES 47 TUXPAN","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[2868,"Naranjos","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[1056,"Ozuluama","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[1187,"Pueblo Viejo","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[253,"Tamalin","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[1272,"Tuxpan Americas","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[1209,"Tuxpan los Cabos.","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[9023,"Tuxpan Radio","Veracruz Norte","TUXPAN","FERNANDO GARCÍA HERNÁNDEZ"],[707,"El Rubi","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[1641,"GRAJALES TUXTEPEC","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[1244,"Jalapa de Diaz Juarez","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[680,"Ojitlan II","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[1157,"San Jose Chiltepec","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[1383,"Tuxtepec 5 De Mayo","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[493,"Tuxtepec Centro 2","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[364,"Valle Nacional","Veracruz Sur","TUXTEPEC","RUBEN GUIZAR AGUIRRE"],[106,"Angel R. Cabada","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[7254,"Catemaco","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[1664,"LERDO CARRETERA","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[9112,"Manuel de la Cabada","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[2869,"Revolucion Social","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[1605,"SAN ANDRES CENTRO","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[9038,"Santiago Tuxtla","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[1811,"TETILA","Veracruz Sur","TUXTLAS","HERNANDEZ HERNANDEZ DAVID"],[240,"Alto Lucero","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[207,"Atenas veracruzana","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[8963,"Castillo Jalapa","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[1125,"Coacoatzintla Veracruz","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[2857,"Ebano","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[8966,"Jilotepec","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[113,"Las trancas","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[156,"Las Vigas Ver","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[263,"Naolinco","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[591,"Perote Aldama","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[111,"Xalapa","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[369,"Panuco Abasto","Veracruz Norte","TAMPICO NORTE","FLORES TREJO ABUNDIO"],[938,"Acultzingo Centro","Veracruz Sur","CORDOBA","LOZANO SANCHEZ SAUL"],[1796,"Boca Negra Abasto","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[347,"Av Quevedo","Veracruz Centro","BOCA DEL RIO","ROMERO ESTRADA ARAZELY"],[1249,"Nuevo Tampico","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[1286,"El Paso Tantoyuca","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[1289,"Tantoyuca Mi Mercado","Veracruz Norte","TANTOYUCA","FLORES AGUILAR RAFAEL"],[1417,"Central Caram","Veracruz Centro","XALAPA","VELASCO BELLO LUIS ENRIQUE"],[1715,"Cocotero","Veracruz Norte","TAMPICO SUR","IGNACIO ARCOS PÉREZ"],[1822,"Reserva II","Veracruz Centro","PORTUARIA","ADOLFO ANGEL AYALA AZUARA"]];
+
+const catalogByEco = {};
+CATALOG.forEach(function(s){ catalogByEco[s[0]] = {nombre:s[1], region:s[2], zona:s[3], supervisor:s[4]}; });
+
+const REGIONS = {};
+CATALOG.forEach(function(s){
+  const region = s[2], zona = s[3];
+  if(!REGIONS[region]) REGIONS[region] = {};
+  if(!REGIONS[region][zona]) REGIONS[region][zona] = [];
+  REGIONS[region][zona].push(s[0]);
+});
+
+/* =====================================================================
+   ESTADO
+   ===================================================================== */
+let AUDITORIAS = [];      // lista de registros de auditoría (uno por folio)
+let AUDITORIAS_BY_ECO = {}; // eco -> [registros] ordenados por fecha desc
+let ACLARACIONES = {};    // folio -> {cedisConfianza,brisa,depositoRecuperacion,editCount,ultimaModificacion,historial}
+
+let nav = { view:'compania', region:null, zona:null, eco:null, folio:null };
+let UI_FILTER = { search:'', status:'all' };
+
+function normalizedText(v){
+  return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function matchesUiFilter(eco){
+  const info = catalogByEco[eco] || {};
+  const a = latestAudit(eco);
+  const q = normalizedText(UI_FILTER.search);
+  if(q){
+    const hay = normalizedText([eco,info.nombre,info.region,info.zona,info.supervisor].join(' '));
+    if(hay.indexOf(q) < 0) return false;
+  }
+  if(UI_FILTER.status==='unaudited' && a) return false;
+  if(UI_FILTER.status==='bad' && (!a || !isFuera(Number(a.pctMerma)))) return false;
+  if(UI_FILTER.status==='ok' && (!a || isFuera(Number(a.pctMerma)))) return false;
+  return true;
+}
+function filteredEcos(ecos){ return ecos.filter(matchesUiFilter); }
+function coveragePct(a){ return a.total ? Math.round((a.auditadas/a.total)*100) : 0; }
+function getPriorityStores(ecos, limit){
+  return ecos.map(function(eco){ return {eco:eco, info:catalogByEco[eco], audit:latestAudit(eco)}; })
+    .filter(function(x){ return x.audit && isFuera(Number(x.audit.pctMerma)); })
+    .sort(function(a,b){ return Number(a.audit.pctMerma)-Number(b.audit.pctMerma); })
+    .slice(0, limit||10);
+}
+
+
+/* =====================================================================
+   JSONP hacia Apps Script
+   ===================================================================== */
+let jsonpSeq = 0;
+function callAppsScript(params){
+  return new Promise(function(resolve, reject){
+    if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PEGA_AQUI') === 0){
+      reject(new Error('Falta configurar APPS_SCRIPT_URL en el archivo.'));
+      return;
+    }
+    const cbName = 'jsonp_cb_' + (jsonpSeq++);
+    const timeout = setTimeout(function(){
+      cleanup();
+      reject(new Error('Tiempo de espera agotado.'));
+    }, 25000);
+    function cleanup(){
+      clearTimeout(timeout);
+      delete window[cbName];
+      const s = document.getElementById(cbName);
+      if(s) s.remove();
+    }
+    window[cbName] = function(result){
+      cleanup();
+      if(result && result.ok) resolve(result.data);
+      else reject(new Error(result && result.error ? result.error : 'Error desconocido'));
+    };
+    const qs = Object.keys(params).map(function(k){
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = APPS_SCRIPT_URL + '?callback=' + cbName + '&' + qs;
+    script.onerror = function(){ cleanup(); reject(new Error('Error de red al llamar Apps Script.')); };
+    document.body.appendChild(script);
+  });
+}
+
+/* =====================================================================
+   CARGA DE DATOS
+   ===================================================================== */
+async function loadData(){
+  try{
+    const data = await callAppsScript({action:'getData'});
+    AUDITORIAS = data.auditorias || [];
+    ACLARACIONES = data.aclaraciones || {};
+    indexAuditorias();
+    render();
+  }catch(err){
+    document.getElementById('content').innerHTML =
+      '<div class="empty">No se pudieron cargar los datos.<br>' + escapeHtml(err.message) +
+      '<br><br><button class="btn primary" onclick="loadData()">Reintentar</button></div>';
+  }
+}
+
+function indexAuditorias(){
+  AUDITORIAS_BY_ECO = {};
+  AUDITORIAS.forEach(function(a){
+    if(!AUDITORIAS_BY_ECO[a.eco]) AUDITORIAS_BY_ECO[a.eco] = [];
+    AUDITORIAS_BY_ECO[a.eco].push(a);
+  });
+  Object.keys(AUDITORIAS_BY_ECO).forEach(function(eco){
+    AUDITORIAS_BY_ECO[eco].sort(function(x,y){ return parseFechaSort(y.fecha) - parseFechaSort(x.fecha); });
+  });
+}
+
+function parseFechaSort(f){
+  if(!f) return 0;
+  const d = new Date(f);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function latestAudit(eco){
+  const list = AUDITORIAS_BY_ECO[eco];
+  return list && list.length ? list[0] : null;
+}
+
+/* =====================================================================
+   CÁLCULOS DE ACLARACIONES
+   ===================================================================== */
+function aclFor(folio){
+  return ACLARACIONES[folio] || {cedisConfianza:0, brisa:0, depositoRecuperacion:0, editCount:0, ultimaModificacion:'', historial:[]};
+}
+function totalAclarado(folio){
+  const a = aclFor(folio);
+  return (Number(a.cedisConfianza)||0) + (Number(a.brisa)||0) + (Number(a.depositoRecuperacion)||0);
+}
+function mermaDespues(audit){
+  if(!audit) return 0;
+  return (Number(audit.totalMerma)||0) + totalAclarado(audit.folio);
+}
+function pctMermaDespues(audit){
+  if(!audit || !audit.ventaPeriodo) return 0;
+  return mermaDespues(audit) / Number(audit.ventaPeriodo);
+}
+
+/* =====================================================================
+   AGREGADOS por región / zona
+   ===================================================================== */
+function storesInZona(region, zona){ return REGIONS[region][zona]; }
+function storesInRegion(region){
+  let all = [];
+  Object.keys(REGIONS[region]).forEach(function(z){ all = all.concat(REGIONS[region][z]); });
+  return all;
+}
+function allStores(){
+  let all = [];
+  Object.keys(REGIONS).forEach(function(r){ all = all.concat(storesInRegion(r)); });
+  return all;
+}
+
+function aggregateFor(ecoList){
+  let auditadas = 0, ventaTot = 0, mermaAntesTot = 0, mermaDespuesTot = 0;
+  let fuera = 0, dentro = 0, cedisTot = 0, brisaTot = 0, depositoTot = 0;
+  ecoList.forEach(function(eco){
+    const a = latestAudit(eco);
+    if(!a) return;
+    auditadas++;
+    ventaTot += Number(a.ventaPeriodo)||0;
+    mermaAntesTot += Number(a.totalMerma)||0;
+    mermaDespuesTot += mermaDespues(a);
+    if(isFuera(Number(a.pctMerma))) fuera++; else dentro++;
+    const acl = aclFor(a.folio);
+    cedisTot += Number(acl.cedisConfianza)||0;
+    brisaTot += Number(acl.brisa)||0;
+    depositoTot += Number(acl.depositoRecuperacion)||0;
+  });
+  return {
+    total: ecoList.length,
+    auditadas: auditadas,
+    sinAuditar: ecoList.length - auditadas,
+    fuera: fuera,
+    dentro: dentro,
+    pctAntes: ventaTot ? mermaAntesTot/ventaTot : null,
+    pctDespues: ventaTot ? mermaDespuesTot/ventaTot : null,
+    mermaAntesTot: mermaAntesTot,
+    mermaDespuesTot: mermaDespuesTot,
+    cedisTot: cedisTot, brisaTot: brisaTot, depositoTot: depositoTot
+  };
+}
+
+
+/* =====================================================================
+   FORMATO
+   ===================================================================== */
+function fmtMoney(n){
+  n = Number(n)||0;
+  const s = Math.abs(n).toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0});
+  return (n<0?'-$':'$') + s;
+}
+function fmtPct(n){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return (n*100).toFixed(2) + '%';
+}
+function pctClass(n){
+  if(n===null||n===undefined) return 'neutral';
+  if(n >= OBJETIVO_MERMA) return 'ok';        // igual o mejor que el objetivo
+  if(n >= OBJETIVO_MERMA*2) return 'warn';    // hasta el doble del objetivo
+  return 'bad';                                // peor que el doble del objetivo
+}
+function isFuera(n){
+  return n!==null && n!==undefined && n < OBJETIVO_MERMA;
+}
+function pctPair(antes, despues){
+  const va = (antes===null||antes===undefined||isNaN(antes)) ? 's/d' : fmtPct(antes);
+  const vd = (despues===null||despues===undefined||isNaN(despues)) ? 's/d' : fmtPct(despues);
+  const ca = va==='s/d' ? 'sd' : pctClass(antes);
+  const cd = vd==='s/d' ? 'sd' : pctClass(despues);
+  return '<div class="pct-pair">' +
+    '<div class="pp-item"><span class="pp-lbl">Antes</span><span class="pp-val ' + ca + '">' + va + '</span></div>' +
+    '<div class="pp-item"><span class="pp-lbl">Después</span><span class="pp-val ' + cd + '">' + vd + '</span></div>' +
+    '</div>';
+}
+function aclSummaryText(cedis, brisa, deposito){
+  cedis = Number(cedis)||0; brisa = Number(brisa)||0; deposito = Number(deposito)||0;
+  if(!cedis && !brisa && !deposito) return '';
+  const parts = [];
+  if(cedis) parts.push('CEDIS ' + fmtMoney(cedis));
+  if(brisa) parts.push('Brisa ' + fmtMoney(brisa));
+  if(deposito) parts.push('Depósito ' + fmtMoney(deposito));
+  return parts.join(' · ');
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function fmtFecha(f){
+  if(!f) return '—';
+  const d = new Date(f);
+  if(isNaN(d.getTime())) return String(f);
+  return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+/* =====================================================================
+   NAVEGACIÓN / BREADCRUMBS
+   ===================================================================== */
+function goCompania(){ nav = {view:'compania'}; render(); }
+function goRegion(region){ nav = {view:'region', region:region}; render(); }
+function goZona(region, zona){ nav = {view:'zona', region:region, zona:zona}; render(); }
+function goTienda(eco){
+  const list = AUDITORIAS_BY_ECO[eco];
+  const folio = list && list.length ? list[0].folio : null;
+  const info = catalogByEco[eco];
+  nav = {view:'tienda', eco:eco, folio:folio,
+         region: info.region, zona: info.zona};
+  render();
+}
+
+function renderCrumbs(){
+  const c = document.getElementById('crumbs');
+  let parts = [];
+  parts.push('<span class="seg' + (nav.view==='compania'?' current':'') + '" onclick="goCompania()">Compañía</span>');
+  if(nav.region){
+    parts.push('<span class="sep">›</span>');
+    parts.push('<span class="seg' + (nav.view==='region'?' current':'') + '" onclick="goRegion(\'' + esc(nav.region) + '\')">' + escapeHtml(nav.region) + '</span>');
+  }
+  if(nav.zona){
+    parts.push('<span class="sep">›</span>');
+    parts.push('<span class="seg' + (nav.view==='zona'?' current':'') + '" onclick="goZona(\'' + esc(nav.region) + '\',\'' + esc(nav.zona) + '\')">' + escapeHtml(nav.zona) + '</span>');
+  }
+  if(nav.view==='tienda'){
+    parts.push('<span class="sep">›</span>');
+    parts.push('<span class="seg current">' + escapeHtml(catalogByEco[nav.eco].nombre) + '</span>');
+  }
+  c.innerHTML = parts.join('');
+}
+function esc(s){ return String(s).replace(/'/g,"\\'"); }
+
+function render(){
+  renderCrumbs();
+  const el = document.getElementById('content');
+  if(nav.view==='compania') el.innerHTML = viewCompania();
+  else if(nav.view==='region') el.innerHTML = viewRegion(nav.region);
+  else if(nav.view==='zona') el.innerHTML = viewZona(nav.region, nav.zona);
+  else if(nav.view==='tienda') el.innerHTML = viewTienda(nav.eco, nav.folio);
+  if(nav.view==='tienda') wireTiendaInputs();
+}
+
+/* =====================================================================
+   VISTA: COMPAÑÍA (banner por región + acordeón de zonas, todo visible)
+   ===================================================================== */
+function viewCompania(){
+  const visible = filteredEcos(allStores());
+  if(!visible.length) return '<div class="no-results">No encontramos tiendas con los filtros seleccionados.</div>';
+  const agg = aggregateFor(visible);
+  let html = '';
+  html += cleanOverviewHtml(agg, 'Compañía Veracruz');
+  html += '<div class="clean-section-head original-region-head"><div class="clean-section-title">Regiones y zonas</div><div class="clean-section-note">Se conserva la estructura original de región y zona.</div></div>';
+  html += '<div class="compania-cols">';
+  Object.keys(REGIONS).sort().forEach(function(region){
+    const ecos = filteredEcos(storesInRegion(region));
+    if(!ecos.length) return;
+    const a = aggregateFor(ecos);
+    html += '<div class="col-region">';
+    html += bannerHeader(region, a);
+    html += accordionHtml(region);
+    html += '</div>';
+  });
+  html += '</div>';
+  html += priorityCleanHtml(visible, 7);
+  return html;
+}
+
+
+
+
+function cleanOverviewHtml(agg, title){
+  const cls = pctClass(agg.pctDespues);
+  const totalAcl = agg.cedisTot + agg.brisaTot + agg.depositoTot;
+  return '<div class="clean-overview">' +
+    '<div>' +
+      '<div class="main-label">Merma actual · ' + escapeHtml(title) + '</div>' +
+      '<div class="main-value" style="color:var(--' + (cls==='ok'?'ok':cls==='warn'?'warn':'bad') + ')">' + fmtPct(agg.pctDespues) + '</div>' +
+      '<div class="main-note">Objetivo ' + fmtPct(OBJETIVO_MERMA) + ' · resultado después de aclaraciones</div>' +
+    '</div>' +
+    '<div class="clean-change">' +
+      '<div class="change-label">Efecto de aclaraciones</div>' +
+      '<div class="change-row"><span class="change-before">' + fmtPct(agg.pctAntes) + '</span><span class="change-arrow">→</span><span class="change-after">' + fmtPct(agg.pctDespues) + '</span></div>' +
+      '<div class="main-note" style="margin-top:5px">' + fmtMoney(agg.mermaAntesTot) + ' → ' + fmtMoney(agg.mermaDespuesTot) + '</div>' +
+    '</div>' +
+    '<div class="clean-metrics">' +
+      '<div class="clean-metric"><div class="m-value">' + agg.auditadas + '/' + agg.total + '</div><div class="m-label">Tiendas auditadas</div></div>' +
+      '<div class="clean-metric bad"><div class="m-value">' + agg.fuera + '</div><div class="m-label">Fuera de objetivo</div></div>' +
+      '<div class="clean-metric ok"><div class="m-value">' + fmtMoney(totalAcl) + '</div><div class="m-label">Total aclarado</div></div>' +
+    '</div>' +
+  '</div>';
+}
+
+
+
+function priorityCleanHtml(ecos, limit){
+  const items=getPriorityStores(ecos, limit);
+  if(!items.length) return '';
+  let rows='';
+  items.forEach(function(x){
+    const a=x.audit, desp=pctMermaDespues(a), cls=pctClass(desp);
+    rows += '<tr onclick="goTienda(' + x.eco + ')">' +
+      '<td class="primary-cell"><span class="clean-link">' + escapeHtml(x.info.nombre) + '</span><span class="sub-cell">ECO ' + x.eco + ' · ' + escapeHtml(x.info.zona) + '</span></td>' +
+      '<td>' + escapeHtml(x.info.region.replace('Veracruz ','')) + '</td>' +
+      '<td class="num">' + fmtPct(Number(a.pctMerma)) + '</td>' +
+      '<td class="num"><span class="clean-status ' + cls + '">' + fmtPct(desp) + '</span></td>' +
+      '<td class="num">' + fmtMoney(totalAclarado(a.folio)) + '</td>' +
+    '</tr>';
+  });
+  return '<div class="clean-section">' +
+    '<div class="clean-section-head"><div class="clean-section-title">Tiendas que requieren atención</div><div class="clean-section-note">Las 7 con mayor afectación en su última auditoría.</div></div>' +
+    '<div class="priority-panel clean-priority"><div class="priority-table"><table class="clean-table"><thead><tr><th>Tienda</th><th>Región</th><th class="num">Antes</th><th class="num">Después</th><th class="num">Aclarado</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
+  '</div>';
+}
+
+
+
+
+
+/* =====================================================================
+   ENCABEZADO TIPO BANNER (región / zona)
+   ===================================================================== */
+function bannerHeader(title, a){
+  const cls = pctClass(a.pctAntes);
+  const clsD = pctClass(a.pctDespues);
+  let pills = '';
+  pills += '<span class="b-pill bad">' + a.fuera + ' fuera</span>';
+  pills += '<span class="b-pill ok">' + a.dentro + ' dentro</span>';
+  if(a.sinAuditar) pills += '<span class="b-pill neutral">' + a.sinAuditar + ' sin audit.</span>';
+  const mejoro = a.pctAntes!==null && a.pctDespues!==null && a.pctDespues > a.pctAntes;
+  return '<div class="banner">' +
+    '<div class="b-title">' + escapeHtml(title) + '</div>' +
+    '<div class="b-pctrow">' +
+      '<div class="b-pctcol"><span class="b-pctlbl">Antes</span><span class="b-pct ' + cls + '">' + fmtPct(a.pctAntes) + '</span></div>' +
+      '<span class="b-arrow">' + (mejoro?'→':'') + '</span>' +
+      '<div class="b-pctcol"><span class="b-pctlbl">Después</span><span class="b-pct sm ' + clsD + '">' + fmtPct(a.pctDespues) + '</span></div>' +
+    '</div>' +
+    '<div class="b-sub">' + fmtMoney(a.mermaAntesTot) + ' · ' + a.auditadas + ' de ' + a.total + ' tiendas auditadas</div>' +
+    '<div class="b-pills">' + pills + '</div>' +
+    '</div>';
+}
+
+/* =====================================================================
+   ACORDEÓN DE ZONAS (usado en Compañía y en Región)
+   ===================================================================== */
+let openZonaByRegion = {};
+
+function accordionHtml(region){
+  const zonas = Object.keys(REGIONS[region]).filter(function(z){ return filteredEcos(storesInZona(region,z)).length; }).sort();
+  const zonasOrdenadas = zonas.slice().sort(function(za, zb){
+    const pa = aggregateFor(filteredEcos(storesInZona(region, za))).pctAntes;
+    const pb = aggregateFor(filteredEcos(storesInZona(region, zb))).pctAntes;
+    if(pa===null && pb===null) return za.localeCompare(zb);
+    if(pa===null) return 1;
+    if(pb===null) return -1;
+    return pa - pb; // más negativo (peor) primero
+  });
+  const openZona = openZonaByRegion[region];
+  let html = '<div class="accordion">';
+  zonasOrdenadas.forEach(function(zona){
+    const a = aggregateFor(filteredEcos(storesInZona(region, zona)));
+    const supervisor = zonaSupervisor(region, zona);
+    const isOpen = zona === openZona;
+    html += '<div class="acc-item' + (isOpen?' open':'') + '">';
+    html += '<div class="acc-head" onclick="toggleZona(\'' + esc(region) + '\',\'' + esc(zona) + '\')">';
+    html += '<span class="acc-arrow">' + (isOpen?'▾':'▸') + '</span>';
+    html += '<span class="acc-name">' + escapeHtml(zona) + '<span class="acc-sup"> · ' + escapeHtml(supervisor) + '</span></span>';
+    html += '<span class="acc-spacer"></span>';
+    html += '<span class="acc-count' + (a.auditadas?'':' neutral') + '">' + a.auditadas + '/' + a.total + '</span>';
+    html += pctPair(a.pctAntes, a.pctDespues);
+    html += '</div>';
+    if(isOpen){
+      html += '<div class="acc-body">' + storeRowsForZona(region, zona) + '</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function zonaSupervisor(region, zona){
+  const ecos = storesInZona(region, zona);
+  const counts = {};
+  ecos.forEach(function(eco){
+    const s = catalogByEco[eco].supervisor || '';
+    counts[s] = (counts[s]||0) + 1;
+  });
+  let best = '', bestN = 0;
+  Object.keys(counts).forEach(function(s){ if(counts[s] > bestN){ bestN = counts[s]; best = s; } });
+  return best;
+}
+
+function storeRowsForZona(region, zona){
+  const ecos = filteredEcos(storesInZona(region, zona)).slice().sort(function(a,b){
+    return catalogByEco[a].nombre.localeCompare(catalogByEco[b].nombre);
+  });
+  let rows = '';
+  ecos.forEach(function(eco){
+    const info = catalogByEco[eco];
+    const list = AUDITORIAS_BY_ECO[eco] || [];
+    const a = list[0];
+    const veces = list.length;
+    rows += '<div class="store-row">';
+    rows += '<span class="store-name" onclick="goTienda(' + eco + ')">' + escapeHtml(info.nombre) + '</span>';
+    const aclTxt = a ? aclSummaryText(aclFor(a.folio).cedisConfianza, aclFor(a.folio).brisa, aclFor(a.folio).depositoRecuperacion) : '';
+    rows += '<span class="store-acl">' + escapeHtml(aclTxt) + '</span>';
+    if(veces) rows += '<span class="store-badge">' + veces + 'x</span>';
+    if(a) rows += pctPair(Number(a.pctMerma), pctMermaDespues(a));
+    else rows += pctPair(null, null);
+    rows += '</div>';
+  });
+  return rows || '<div class="empty">Sin tiendas.</div>';
+}
+
+function toggleZona(region, zona){
+  openZonaByRegion[region] = (openZonaByRegion[region] === zona) ? null : zona;
+  render();
+}
+
+/* =====================================================================
+   VISTA: REGIÓN (banner + acordeón de zonas — acceso directo por link)
+   ===================================================================== */
+function viewRegion(region){
+  const ecos = filteredEcos(storesInRegion(region));
+  if(!ecos.length) return '<div class="no-results">No hay tiendas que coincidan con los filtros en esta región.</div>';
+  const agg = aggregateFor(ecos);
+  return bannerHeader(region, agg) + accordionHtml(region);
+}
+
+/* =====================================================================
+   VISTA: ZONA (banner + tabla de tiendas)
+   ===================================================================== */
+function viewZona(region, zona){
+  const ecosFiltrados = filteredEcos(storesInZona(region, zona));
+  if(!ecosFiltrados.length) return '<div class="no-results">No hay tiendas que coincidan con los filtros en esta zona.</div>';
+  const agg = aggregateFor(ecosFiltrados);
+  let html = bannerHeader(zona, agg);
+
+  const ecos = ecosFiltrados.slice().sort(function(a,b){
+    return catalogByEco[a].nombre.localeCompare(catalogByEco[b].nombre);
+  });
+  let rows = '';
+  ecos.forEach(function(eco){
+    const info = catalogByEco[eco];
+    const a = latestAudit(eco);
+    const pctAntes = a ? Number(a.pctMerma) : null;
+    const pctDesp = a ? pctMermaDespues(a) : null;
+    rows += '<tr onclick="goTienda(' + eco + ')">' +
+      '<td>' + escapeHtml(info.nombre) + '<div style="color:var(--sub);font-size:11.5px;">ECO ' + eco + ' · ' + escapeHtml(info.supervisor) + '</div></td>' +
+      '<td>' + (a ? fmtFecha(a.fecha) : '<span class="pill neutral">Sin auditar</span>') + '</td>' +
+      '<td>' + (a ? '<span class="pill ' + pctClass(pctAntes) + '">' + fmtPct(pctAntes) + '</span>' : '—') + '</td>' +
+      '<td>' + (a ? '<span class="pill ' + pctClass(pctDesp) + '">' + fmtPct(pctDesp) + '</span>' : '—') + '</td>' +
+      '<td>' + (a ? fmtMoney(totalAclarado(a.folio)) : '—') + '</td>' +
+      '</tr>';
+  });
+  html += '<div class="panel"><div class="table-wrap"><table><thead><tr>' +
+    '<th>Tienda</th><th>Última auditoría</th><th>% Merma antes</th><th>% Merma después</th><th>Aclarado</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  return html;
+}
+
+
+/* =====================================================================
+   VISTA: TIENDA (detalle + aclaraciones + historial de ediciones)
+   ===================================================================== */
+function viewTienda(eco, folio){
+  const info = catalogByEco[eco];
+  const list = AUDITORIAS_BY_ECO[eco] || [];
+  if(!list.length){
+    return '<div class="panel"><h2>' + escapeHtml(info.nombre) + '</h2>' +
+      '<div class="empty">Esta tienda todavía no tiene auditorías cargadas.</div></div>';
+  }
+  const audit = list.find(function(a){ return a.folio === folio; }) || list[0];
+  const acl = aclFor(audit.folio);
+  const aclarado = totalAclarado(audit.folio);
+  const mDespues = mermaDespues(audit);
+  const pDespues = pctMermaDespues(audit);
+
+  let html = '<div class="panel">';
+  html += '<h2>' + escapeHtml(info.nombre) + ' <span style="color:var(--sub);font-weight:450;font-size:13px;">ECO ' + eco + ' · ' + escapeHtml(info.zona) + ' · ' + escapeHtml(info.supervisor) + '</span></h2>';
+
+  if(list.length > 1){
+    html += '<div style="margin-bottom:16px;">';
+    html += '<select class="audit-select" id="auditSelect" onchange="onAuditChange(' + eco + ')">';
+    list.forEach(function(a){
+      html += '<option value="' + escapeHtml(a.folio) + '"' + (a.folio===audit.folio?' selected':'') + '>' +
+        fmtFecha(a.fecha) + ' · ' + escapeHtml(a.periodoVenta||'') + '</option>';
+    });
+    html += '</select></div>';
+  }
+
+  html += '<h3>Resultado de la auditoría (folio ' + escapeHtml(audit.folio) + ', ' + fmtFecha(audit.fecha) + ')</h3>';
+  html += '<div class="field-grid">';
+  html += field('Venta del periodo', fmtMoney(audit.ventaPeriodo));
+  html += field('Faltante', fmtMoney(audit.faltanteInicial), Number(audit.faltanteInicial)<0?'neg':'');
+  html += field('Sobrante', fmtMoney(audit.sobranteInicial), 'pos');
+  html += field('% Merma', fmtPct(Number(audit.pctMerma)), pctClass(Number(audit.pctMerma))==='bad'?'neg':'');
+  html += '</div>';
+
+  html += '<h3>Aclaraciones</h3>';
+  html += '<div class="acl-grid">';
+  html += aclInput('cedis', 'CEDIS de confianza', acl.cedisConfianza);
+  html += aclInput('brisa', 'Brisa', acl.brisa);
+  html += aclInput('deposito', 'Depósito de recuperación', acl.depositoRecuperacion);
+  html += '</div>';
+  html += '<button class="btn primary" id="btnSaveAcl">Guardar aclaraciones</button> ';
+  html += '<span class="status-msg" id="aclStatus" style="margin-left:10px;"></span>';
+
+  html += '<div class="result-strip">';
+  html += resultBox('before', 'Merma antes de aclaraciones', fmtMoney(audit.totalMerma), fmtPct(Number(audit.pctMerma)));
+  html += resultBox('after', 'Merma después de aclaraciones', fmtMoney(mDespues), fmtPct(pDespues));
+  html += '</div>';
+
+  html += '<div style="margin-top:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+  html += '<span class="edit-badge">Aclaraciones editadas <b>' + (acl.editCount||0) + '</b> ' + ((acl.editCount||0)===1?'vez':'veces') + '</span>';
+  html += '<span class="edit-badge">Última modificación: <b>' + escapeHtml(acl.ultimaModificacion || '—') + '</b></span>';
+  html += '</div>';
+
+  if(acl.historial && acl.historial.length){
+    html += '<h3 style="margin-top:20px;">Historial de modificaciones</h3>';
+    html += '<ul class="hist-list">';
+    acl.historial.slice().reverse().forEach(function(h){
+      html += '<li><span class="who">' + escapeHtml(h.fecha) + (h.coach?' · '+escapeHtml(h.coach):'') + '</span>' +
+        '<span>CEDIS ' + fmtMoney(h.cedis) + ' · Brisa ' + fmtMoney(h.brisa) + ' · Depósito ' + fmtMoney(h.deposito) + '</span></li>';
+    });
+    html += '</ul>';
+  }
+
+  html += '</div>';
+  return html;
+}
+function field(lbl, val, cls){
+  return '<div class="field"><div class="lbl">' + lbl + '</div><div class="val ' + (cls||'') + '">' + val + '</div></div>';
+}
+function aclInput(key, lbl, val){
+  return '<div class="acl-box"><label>' + lbl + '</label>' +
+    '<input type="number" step="0.01" id="acl_' + key + '" value="' + (Number(val)||0) + '"></div>';
+}
+function resultBox(cls, lbl, val, pct){
+  return '<div class="rbox ' + cls + '"><div class="lbl">' + lbl + '</div>' +
+    '<div class="val">' + val + '</div><div style="color:var(--sub);font-size:12.5px;margin-top:3px;">' + pct + '</div></div>';
+}
+
+function onAuditChange(eco){
+  const sel = document.getElementById('auditSelect');
+  nav.folio = sel.value;
+  render();
+}
+
+function wireTiendaInputs(){
+  const btn = document.getElementById('btnSaveAcl');
+  if(!btn) return;
+  btn.addEventListener('click', async function(){
+    const folio = nav.folio;
+    const cedis = document.getElementById('acl_cedis').value;
+    const brisa = document.getElementById('acl_brisa').value;
+    const deposito = document.getElementById('acl_deposito').value;
+    const statusEl = document.getElementById('aclStatus');
+    btn.disabled = true;
+    statusEl.textContent = 'Guardando…';
+    statusEl.className = 'status-msg';
+    try{
+      const updated = await callAppsScript({
+        action:'saveAclaracion', folio: folio,
+        cedis: cedis||0, brisa: brisa||0, deposito: deposito||0,
+        coach: (window.localStorage && localStorage.getItem('auditorias_coach_name')) || ''
+      });
+      ACLARACIONES[folio] = updated;
+      statusEl.textContent = 'Guardado.';
+      statusEl.className = 'status-msg ok';
+      render();
+    }catch(err){
+      statusEl.textContent = 'No se pudo guardar: ' + err.message;
+      statusEl.className = 'status-msg bad';
+    }finally{
+      btn.disabled = false;
+    }
+  });
+}
+
+/* =====================================================================
+   SUBIDA DEL ARCHIVO DIARIO (.xls / .xlsx)
+   ===================================================================== */
+function normalizaRegion(txt){
+  txt = String(txt||'').toUpperCase();
+  if(txt.indexOf('NORTE') >= 0) return 'Veracruz Norte';
+  if(txt.indexOf('SUR') >= 0) return 'Veracruz Sur';
+  return 'Veracruz Centro';
+}
+function excelDateToStr(v){
+  if(v == null || v === '') return '';
+  if(typeof v === 'number'){
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    return d.toISOString().slice(0,10);
+  }
+  return String(v);
+}
+
+document.getElementById('btnUpload').addEventListener('click', function(){
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', async function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.textContent = 'Leyendo archivo…';
+  statusEl.className = 'status-msg';
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:false});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+
+    // localizar la fila de encabezados (contiene "Folio Conteo")
+    let headerIdx = -1;
+    for(let i=0;i<rows.length;i++){
+      if(rows[i].some(function(c){ return String(c).indexOf('Folio Conteo') >= 0; })){
+        headerIdx = i; break;
+      }
+    }
+    if(headerIdx < 0) throw new Error('No se encontró el encabezado "Folio Conteo" en el archivo.');
+
+    const dataRows = rows.slice(headerIdx+1).filter(function(r){ return r[0] !== '' && r[0] != null; });
+    if(!dataRows.length) throw new Error('El archivo no tiene filas de datos.');
+
+    const payloadRows = dataRows.map(function(r){
+      const eco = Number(r[0]);
+      const folio = String(r[1]).trim();
+      const tiendaArchivo = String(r[2]||'');
+      const info = catalogByEco[eco];
+      const region = info ? info.region : normalizaRegion(r[3]);
+      const zona = info ? info.zona : String(r[3]||'');
+      const tienda = info ? info.nombre : tiendaArchivo;
+      return [
+        folio, eco, tienda, zona, region,
+        excelDateToStr(r[4]), r[5]||'',
+        Number(r[6])||0, Number(r[7])||0, Number(r[8])||0, Number(r[9])||0,
+        Number(r[10])||0, Number(r[11])||0, Number(r[12])||0, Number(r[13])||0,
+        Number(r[14])||0
+      ];
+    });
+
+    // enviar en lotes para no exceder el límite de longitud de URL
+    const BATCH = 15;
+    let added = 0, recibidos = 0;
+    for(let i=0;i<payloadRows.length;i+=BATCH){
+      const batch = payloadRows.slice(i, i+BATCH);
+      const json = JSON.stringify(batch);
+      const b64 = btoa(unescape(encodeURIComponent(json)));
+      statusEl.textContent = 'Subiendo ' + Math.min(i+BATCH,payloadRows.length) + ' / ' + payloadRows.length + '…';
+      const res = await callAppsScript({action:'upload', payload:b64});
+      added += res.added;
+      recibidos += res.recibidos;
+    }
+
+    statusEl.textContent = recibidos + ' auditorías leídas, ' + added + ' nuevas agregadas.';
+    statusEl.className = 'status-msg ok';
+    e.target.value = '';
+    await loadData();
+  }catch(err){
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.className = 'status-msg bad';
+  }
+});
+
+/* =====================================================================
+   FILTROS DE INTERFAZ
+   ===================================================================== */
+const globalSearchEl = document.getElementById('globalSearch');
+const statusFilterEl = document.getElementById('statusFilter');
+let searchTimer = null;
+globalSearchEl.addEventListener('input', function(){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function(){ UI_FILTER.search = globalSearchEl.value.trim(); render(); }, 140);
+});
+statusFilterEl.addEventListener('change', function(){ UI_FILTER.status = statusFilterEl.value; render(); });
+document.getElementById('btnClearFilters').addEventListener('click', function(){
+  UI_FILTER = {search:'',status:'all'};
+  globalSearchEl.value=''; statusFilterEl.value='all'; render();
+});
+
+/* =====================================================================
+   INICIO
+   ===================================================================== */
+loadData();
+</script>
+</body>
+</html>
