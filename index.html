@@ -432,6 +432,7 @@ table thead th{background:#f7f9fb;position:sticky;top:0;z-index:1;}
     <div class="upload-bar">
       <input type="file" id="fileInput" accept=".xls,.xlsx">
       <button class="btn" id="btnUpload">Subir auditorías del día</button>
+      <button class="btn" id="btnExport">Exportar a Excel</button>
       <span class="status-msg" id="uploadStatus"></span>
     </div>
   </header>
@@ -1165,12 +1166,15 @@ document.getElementById('fileInput').addEventListener('change', async function(e
       const region = info ? info.region : normalizaRegion(r[3]);
       const zona = info ? info.zona : String(r[3]||'');
       const tienda = info ? info.nombre : tiendaArchivo;
+      // Usamos "Merma Neta" (col. 23) y "% Merma Neta" (col. 24) del reporte,
+      // no "Total Merma" (col. 12) / "% Merma" (col. 14) — esos son antes de
+      // los ajustes propios del reporte (Inversión, Manual, Dev CD, etc.).
       return [
         folio, eco, tienda, zona, region,
         excelDateToStr(r[4]), r[5]||'',
         Number(r[6])||0, Number(r[7])||0, Number(r[8])||0, Number(r[9])||0,
-        Number(r[10])||0, Number(r[11])||0, Number(r[12])||0, Number(r[13])||0,
-        Number(r[14])||0
+        Number(r[10])||0, Number(r[11])||0, Number(r[23])||0, Number(r[13])||0,
+        Number(r[24])||0
       ];
     });
 
@@ -1212,6 +1216,59 @@ document.getElementById('btnClearFilters').addEventListener('click', function(){
   UI_FILTER = {search:'',status:'all'};
   globalSearchEl.value=''; statusFilterEl.value='all'; render();
 });
+
+/* =====================================================================
+   EXPORTAR A EXCEL (región → zona → tienda, con aclaraciones y resultado final)
+   ===================================================================== */
+function exportExcel(){
+  const headers = [
+    'Región','Zona','ECO','Tienda','Supervisor','Folio','Fecha','Periodo venta',
+    'Venta del periodo','Faltante inicial','Sobrante inicial',
+    'Merma inicial ($)','% Merma inicial',
+    'CEDIS de confianza','Brisa','Depósito de recuperación','Manual/Empaque','Total aclarado',
+    'Merma final ($)','% Merma final',
+    'Veces editado','Última modificación'
+  ];
+  const rows = [headers];
+
+  Object.keys(REGIONS).sort().forEach(function(region){
+    Object.keys(REGIONS[region]).sort().forEach(function(zona){
+      const ecos = storesInZona(region, zona).slice().sort(function(a,b){
+        return catalogByEco[a].nombre.localeCompare(catalogByEco[b].nombre);
+      });
+      ecos.forEach(function(eco){
+        const info = catalogByEco[eco];
+        const a = latestAudit(eco);
+        if(!a) return; // solo tiendas con al menos una auditoría cargada
+        const acl = aclFor(a.folio);
+        const desp = pctDespuesDisplay(a);
+        rows.push([
+          region, zona, eco, info.nombre, info.supervisor, a.folio, fmtFecha(a.fecha), a.periodoVenta || '',
+          Number(a.ventaPeriodo)||0, Number(a.faltanteInicial)||0, Number(a.sobranteInicial)||0,
+          Number(a.totalMerma)||0, Number(a.pctMerma)||0,
+          Number(acl.cedisConfianza)||0, Number(acl.brisa)||0, Number(acl.depositoRecuperacion)||0, Number(acl.manualEmpaque)||0, totalAclarado(a.folio),
+          mermaDespues(a), desp===null ? '' : desp,
+          acl.editCount||0, acl.ultimaModificacion || ''
+        ]);
+      });
+    });
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = headers.map(function(h){ return {wch: Math.max(12, h.length+2)}; });
+  const pctCols = [12, 19]; // % Merma inicial, % Merma final (0-indexed columns)
+  for(let r=1; r<rows.length; r++){
+    pctCols.forEach(function(c){
+      const cell = ws[XLSX.utils.encode_cell({r:r, c:c})];
+      if(cell && cell.v !== '') cell.z = '0.00%';
+    });
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Auditorías');
+  const hoy = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, 'auditorias_cia_veracruz_' + hoy + '.xlsx');
+}
+document.getElementById('btnExport').addEventListener('click', exportExcel);
 
 /* =====================================================================
    INICIO
