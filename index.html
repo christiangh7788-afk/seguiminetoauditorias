@@ -69,8 +69,8 @@ h1 small{display:block;color:var(--sub);font-weight:450;font-size:12.5px;margin-
 .compania-cols .b-pctlbl{font-size:9px;}
 .compania-cols .b-pctrow{gap:10px;}
 .compania-cols .acc-name{font-size:13px;}
-.compania-cols .acc-sup{display:block;font-size:10.5px;margin-left:0;}
-.compania-cols .acc-head{padding:10px 12px;flex-wrap:wrap;}
+.compania-cols .acc-sup{font-size:10.5px;margin-left:4px;}
+.compania-cols .acc-head{padding:10px 12px;}
 .compania-cols .store-row{padding:8px 12px 8px 28px;}
 .compania-cols .pp-lbl{font-size:9px;}
 .compania-cols .pp-val{font-size:12px;}
@@ -156,8 +156,15 @@ table tbody tr:hover{background:var(--panel2);}
 .acc-head:hover{background:var(--panel2);}
 .acc-item.open .acc-head{background:var(--panel2);border-left:3px solid var(--accent);}
 .acc-arrow{color:var(--sub);font-size:11px;width:12px;flex-shrink:0;}
-.acc-name{font-weight:650;font-size:14px;}
+.acc-name{font-weight:650;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .acc-sup{color:var(--sub);font-size:12px;font-weight:450;margin-left:6px;}
+.acc-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.tag-new{
+  display:inline-flex;align-items:center;gap:4px;margin-left:8px;flex-shrink:0;
+  background:rgba(224,169,74,.15);color:var(--warn);border:1px solid rgba(224,169,74,.35);
+  font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;white-space:nowrap;
+}
+.tag-new:before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
 .acc-spacer{flex:1;}
 .acc-acl{flex:1;padding-left:10px;color:var(--sub);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .acc-count{
@@ -183,7 +190,7 @@ table tbody tr:hover{background:var(--panel2);}
 }
 .store-row-top{display:flex;align-items:center;gap:10px;}
 .store-row:hover{background:var(--panel2);}
-.store-name{color:#2a5aa8;cursor:pointer;font-weight:500;}
+.store-name{color:#2a5aa8;cursor:pointer;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .store-name:hover{text-decoration:underline;}
 .store-spacer{flex:1;}
 .store-acl{flex:1;padding-left:10px;color:var(--sub);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -661,6 +668,7 @@ function aggregateFor(ecoList){
     mermaAntesTot: mermaAntesTot,
     mermaDespuesTot: mermaDespuesTot,
     conAclaraciones: conAclaraciones,
+    pendientes: auditadas - conAclaraciones,
     cedisTot: cedisTot, brisaTot: brisaTot, depositoTot: depositoTot, empaqueTot: empaqueTot
   };
 }
@@ -895,9 +903,11 @@ function accordionHtml(region){
     html += '<span class="acc-arrow">' + (isOpen?'▾':'▸') + '</span>';
     html += '<span class="acc-name">' + escapeHtml(zona) + '<span class="acc-sup"> · ' + escapeHtml(supervisor) + '</span></span>';
     html += '<span class="acc-spacer"></span>';
+    html += '<div class="acc-right">';
+    if(a.pendientes>0) html += '<span class="tag-new">Nueva ×' + a.pendientes + '</span>';
     html += '<span class="acc-count' + (a.auditadas?'':' neutral') + '">' + a.auditadas + '/' + a.total + '</span>';
     html += pctPair(a.pctAntes, a.pctDespues);
-    html += '</div>';
+    html += '</div></div>';
     if(isOpen){
       html += '<div class="acc-body">' + storeRowsForZona(region, zona) + '</div>';
     }
@@ -934,10 +944,12 @@ function storeRowsForZona(region, zona){
     rows += '<div class="store-row-top">';
     rows += '<span class="store-name" onclick="goTienda(' + eco + ')">' + escapeHtml(info.nombre) + '</span>';
     rows += '<span class="store-spacer"></span>';
+    rows += '<div class="acc-right">';
+    if(a && !tieneAclaraciones(a.folio)) rows += '<span class="tag-new">Nueva</span>';
     if(veces) rows += '<span class="store-badge">' + veces + 'x</span>';
     if(a) rows += pctPair(Number(a.pctMerma), pctDespuesDisplay(a));
     else rows += pctPair(null, null);
-    rows += '</div>';
+    rows += '</div></div>';
     if(aclTxt) rows += '<div class="store-acl-line">' + escapeHtml(aclTxt) + '</div>';
     rows += '</div>';
   });
@@ -1191,7 +1203,7 @@ document.getElementById('fileInput').addEventListener('change', async function(e
       recibidos += res.recibidos;
     }
 
-    statusEl.textContent = recibidos + ' auditorías leídas, ' + added + ' nuevas agregadas.';
+    statusEl.textContent = recibidos + ' registros leídos del archivo, ' + added + ' auditorías nuevas agregadas.';
     statusEl.className = 'status-msg ok';
     e.target.value = '';
     await loadData();
