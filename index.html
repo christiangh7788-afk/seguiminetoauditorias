@@ -291,7 +291,7 @@ header.top .btn{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.
 header.top .btn:hover{border-color:var(--neto-orange);background:rgba(255,255,255,.15);}
 header.top .status-msg{color:#dfe8f3;}
 
-.dashboard-tools{display:grid;grid-template-columns:minmax(280px,1fr) auto auto;gap:10px;align-items:center;margin:0 0 16px;}
+.dashboard-tools{display:grid;grid-template-columns:minmax(260px,1fr) auto auto auto;gap:10px;align-items:center;margin:0 0 16px;}
 .search-wrap{position:relative;}
 .search-wrap input{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px 11px 38px;font-size:13.5px;outline:none;box-shadow:0 3px 12px rgba(20,39,67,.04);}
 .search-wrap input:focus{border-color:#8aa9ce;box-shadow:0 0 0 3px rgba(42,90,168,.08);}
@@ -299,6 +299,8 @@ header.top .status-msg{color:#dfe8f3;}
 .filter-select{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;color:var(--text);font-size:13px;min-width:150px;}
 .btn.ghost{background:white;border-color:var(--line);}
 @media(max-width:760px){.dashboard-tools{grid-template-columns:1fr 1fr}.search-wrap{grid-column:1/-1}.filter-select{min-width:0;width:100%;}}
+.btn.ghost.danger{color:var(--bad);border-color:rgba(193,78,52,.35);}
+.btn.ghost.danger:hover{background:rgba(193,78,52,.08);border-color:var(--bad);}
 
 .crumbs{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 9px;margin:0 0 16px;box-shadow:0 2px 8px rgba(20,39,67,.03);}
 
@@ -440,11 +442,13 @@ table thead th{background:#f7f9fb;position:sticky;top:0;z-index:1;}
       <input type="file" id="fileInput" accept=".xls,.xlsx">
       <button class="btn" id="btnUpload">Subir auditorías del día</button>
       <button class="btn" id="btnExport">Exportar a Excel</button>
+      <button class="btn ghost danger" id="btnReset">Reiniciar datos</button>
       <span class="status-msg" id="uploadStatus"></span>
     </div>
   </header>
   <div class="dashboard-tools">
     <div class="search-wrap"><span class="search-icon">⌕</span><input id="globalSearch" type="search" placeholder="Buscar por tienda, ECO, zona o coach…" autocomplete="off"></div>
+    <select id="monthFilter" class="filter-select" aria-label="Filtrar por mes"></select>
     <select id="statusFilter" class="filter-select" aria-label="Filtrar por estatus">
       <option value="all">Todos los estatus</option>
       <option value="bad">Fuera de objetivo</option>
@@ -491,6 +495,34 @@ let ACLARACIONES = {};    // folio -> {cedisConfianza,brisa,depositoRecuperacion
 
 let nav = { view:'compania', region:null, zona:null, eco:null, folio:null };
 let UI_FILTER = { search:'', status:'all' };
+let MES_FILTER = 'all'; // 'all' o 'YYYY-MM' — se fija al mes más reciente tras la primera carga
+
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function mesKey(fecha){
+  const s = String(fecha||'');
+  return s.length>=7 ? s.slice(0,7) : null;
+}
+function mesLabel(key){
+  if(key==='all') return 'Todos los meses';
+  const parts = key.split('-');
+  const nombre = MESES_ES[parseInt(parts[1],10)-1] || key;
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1) + ' ' + parts[0];
+}
+function availableMonths(){
+  const set = {};
+  AUDITORIAS.forEach(function(a){ const k = mesKey(a.fecha); if(k) set[k] = true; });
+  return Object.keys(set).sort().reverse(); // más reciente primero
+}
+function renderMonthSelector(){
+  const sel = document.getElementById('monthFilter');
+  const months = availableMonths();
+  let html = '<option value="all">Todos los meses</option>';
+  months.forEach(function(k){
+    html += '<option value="' + k + '"' + (k===MES_FILTER?' selected':'') + '>' + mesLabel(k) + '</option>';
+  });
+  sel.innerHTML = html;
+  sel.value = MES_FILTER;
+}
 
 function normalizedText(v){
   return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -563,6 +595,14 @@ async function loadData(){
     const data = await callAppsScript({action:'getData'});
     AUDITORIAS = data.auditorias || [];
     ACLARACIONES = data.aclaraciones || {};
+    const months = availableMonths();
+    if(MES_FILTER!=='all' && months.indexOf(MES_FILTER)<0){
+      MES_FILTER = months.length ? months[0] : 'all'; // el mes que traíamos seleccionado ya no existe
+    } else if(!loadData._init && months.length){
+      MES_FILTER = months[0]; // primera carga: abrir en el mes más reciente
+    }
+    loadData._init = true;
+    renderMonthSelector();
     indexAuditorias();
     render();
   }catch(err){
@@ -575,6 +615,7 @@ async function loadData(){
 function indexAuditorias(){
   AUDITORIAS_BY_ECO = {};
   AUDITORIAS.forEach(function(a){
+    if(MES_FILTER!=='all' && mesKey(a.fecha)!==MES_FILTER) return;
     if(!AUDITORIAS_BY_ECO[a.eco]) AUDITORIAS_BY_ECO[a.eco] = [];
     AUDITORIAS_BY_ECO[a.eco].push(a);
   });
@@ -1146,6 +1187,30 @@ document.getElementById('btnUpload').addEventListener('click', function(){
   document.getElementById('fileInput').click();
 });
 
+document.getElementById('btnReset').addEventListener('click', async function(){
+  const statusEl = document.getElementById('uploadStatus');
+  const pass = window.prompt('Esto borra TODAS las auditorías y aclaraciones guardadas, de todos los meses. Escribe la contraseña para continuar:');
+  if(pass === null) return; // cancelado
+  if(!window.confirm('¿Seguro? Esta acción no se puede deshacer.')) return;
+  const btn = this;
+  btn.disabled = true;
+  statusEl.textContent = 'Reiniciando datos…';
+  statusEl.className = 'status-msg';
+  try{
+    await callAppsScript({action:'resetAll', pass: pass});
+    statusEl.textContent = 'Datos reiniciados.';
+    statusEl.className = 'status-msg ok';
+    loadData._init = false;
+    MES_FILTER = 'all';
+    await loadData();
+  }catch(err){
+    statusEl.textContent = 'No se pudo reiniciar: ' + err.message;
+    statusEl.className = 'status-msg bad';
+  }finally{
+    btn.disabled = false;
+  }
+});
+
 document.getElementById('fileInput').addEventListener('change', async function(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -1203,7 +1268,16 @@ document.getElementById('fileInput').addEventListener('change', async function(e
       recibidos += res.recibidos;
     }
 
-    statusEl.textContent = recibidos + ' registros leídos del archivo, ' + added + ' auditorías nuevas agregadas.';
+    const mesesArchivo = {};
+    payloadRows.forEach(function(r){ const k = mesKey(r[5]); if(k) mesesArchivo[k] = true; });
+    const mesesArchivoList = Object.keys(mesesArchivo);
+    const otroMes = MES_FILTER!=='all' && mesesArchivoList.some(function(k){ return k !== MES_FILTER; });
+
+    let msg = recibidos + ' registros leídos del archivo, ' + added + ' auditorías nuevas agregadas.';
+    if(otroMes){
+      msg += ' Incluye ' + mesesArchivoList.map(mesLabel).join(', ') + ' — usa el selector de mes para verlo.';
+    }
+    statusEl.textContent = msg;
     statusEl.className = 'status-msg ok';
     e.target.value = '';
     await loadData();
@@ -1224,6 +1298,12 @@ globalSearchEl.addEventListener('input', function(){
   searchTimer = setTimeout(function(){ UI_FILTER.search = globalSearchEl.value.trim(); render(); }, 140);
 });
 statusFilterEl.addEventListener('change', function(){ UI_FILTER.status = statusFilterEl.value; render(); });
+document.getElementById('monthFilter').addEventListener('change', function(){
+  MES_FILTER = this.value;
+  nav = {view:'compania'};
+  indexAuditorias();
+  render();
+});
 document.getElementById('btnClearFilters').addEventListener('click', function(){
   UI_FILTER = {search:'',status:'all'};
   globalSearchEl.value=''; statusFilterEl.value='all'; render();
@@ -1278,7 +1358,8 @@ function exportExcel(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Auditorías');
   const hoy = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, 'auditorias_cia_veracruz_' + hoy + '.xlsx');
+  const mesSlug = MES_FILTER==='all' ? 'todos' : MES_FILTER;
+  XLSX.writeFile(wb, 'auditorias_cia_veracruz_' + mesSlug + '_' + hoy + '.xlsx');
 }
 document.getElementById('btnExport').addEventListener('click', exportExcel);
 
