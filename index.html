@@ -239,6 +239,8 @@ table tbody tr:hover{background:var(--panel2);}
 .result-strip .rbox .val{font-size:20px;font-weight:700;}
 .result-strip .rbox.before{border-left:3px solid var(--sub);}
 .result-strip .rbox.after{border-left:3px solid var(--accent2);}
+.result-strip .rbox.pay{border-left:3px solid var(--bad);background:rgba(193,78,52,.05);}
+.result-strip .rbox.pay .val{color:var(--bad);}
 
 .hist-list{list-style:none;margin:0;padding:0;font-size:12.5px;}
 .hist-list li{
@@ -470,6 +472,12 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwEBiUcQORSTRlc
 
 const OBJETIVO_MERMA = -0.0065; // referencia, igual que en Control de Merma
 
+// Umbral de pago adicional: si una tienda, YA con sus aclaraciones
+// capturadas, sigue con un % de merma peor que esto, se le calcula cuánto
+// tendría que pagar (aclaración adicional) para quedar exactamente en
+// este %. Antes de la primera captura de aclaraciones no se muestra nada.
+const UMBRAL_PAGO = -0.0090;
+
 /* =====================================================================
    CATÁLOGO (246 tiendas activas) — [eco, nombre, region, zona, supervisor]
    ===================================================================== */
@@ -662,6 +670,21 @@ function pctDespuesDisplay(audit){
   if(!audit) return null;
   if(!tieneAclaraciones(audit.folio)) return null;
   return pctMermaDespues(audit);
+}
+
+function montoAPagarObjetivo(audit){
+  // Se activa solo después de la primera captura de aclaraciones, y solo
+  // si el % final sigue peor que UMBRAL_PAGO. Devuelve el monto adicional
+  // (en $) que haría falta aclarar para quedar exactamente en ese %.
+  if(!audit) return null;
+  if(!tieneAclaraciones(audit.folio)) return null;
+  const venta = Number(audit.ventaPeriodo)||0;
+  if(!venta) return null;
+  const pctActual = pctMermaDespues(audit);
+  if(pctActual >= UMBRAL_PAGO) return null; // ya está dentro del umbral
+  const mermaActual = mermaDespues(audit);
+  const mermaObjetivo = UMBRAL_PAGO * venta;
+  return mermaObjetivo - mermaActual; // monto positivo a pagar/aclarar
 }
 
 /* =====================================================================
@@ -1036,12 +1059,18 @@ function viewZona(region, zona){
       '<td>' + (a ? '<span class="pill ' + pctClass(pctAntes) + '">' + fmtPct(pctAntes) + '</span>' : '—') + '</td>' +
       '<td>' + (a ? '<span class="pill ' + pctClass(pctDesp) + '">' + fmtPct(pctDesp) + '</span>' : '—') + '</td>' +
       '<td>' + (a ? fmtMoney(totalAclarado(a.folio)) : '—') + '</td>' +
+      '<td>' + montoAPagarCellHtml(a) + '</td>' +
       '</tr>';
   });
   html += '<div class="panel"><div class="table-wrap"><table><thead><tr>' +
-    '<th>Tienda</th><th>Última auditoría</th><th>% Merma inicial</th><th>% Merma final</th><th>Aclarado</th>' +
+    '<th>Tienda</th><th>Última auditoría</th><th>% Merma inicial</th><th>% Merma final</th><th>Aclarado</th><th>Monto a pagar (' + fmtPct(UMBRAL_PAGO) + ')</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   return html;
+}
+function montoAPagarCellHtml(audit){
+  const monto = montoAPagarObjetivo(audit);
+  if(monto===null || monto===undefined) return '—';
+  return '<span class="pill bad">' + fmtMoney(monto) + '</span>';
 }
 
 
@@ -1095,6 +1124,10 @@ function viewTienda(eco, folio){
   html += '<div class="result-strip">';
   html += resultBox('before', 'Merma inicial', fmtMoney(audit.totalMerma), fmtPct(Number(audit.pctMerma)));
   html += resultBox('after', 'Merma final (con aclaraciones)', fmtMoney(mDespues), fmtPct(pDespues));
+  const montoPagar = montoAPagarObjetivo(audit);
+  if(montoPagar!==null){
+    html += resultBox('pay', 'Monto a pagar para llegar a ' + fmtPct(UMBRAL_PAGO), fmtMoney(montoPagar), 'Aclaración adicional requerida');
+  }
   html += '</div>';
 
   html += '<div style="margin-top:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
