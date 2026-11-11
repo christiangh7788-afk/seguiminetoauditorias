@@ -68,6 +68,9 @@ h1 small{display:block;color:var(--sub);font-weight:450;font-size:12.5px;margin-
 .compania-cols .b-pct.sm{font-size:16px;}
 .compania-cols .b-pctlbl{font-size:9px;}
 .compania-cols .b-pctrow{gap:10px;}
+.compania-cols .b-cobro-row{gap:14px;margin-top:10px;padding-top:10px;}
+.compania-cols .b-cobro-lbl{font-size:9px;}
+.compania-cols .b-cobro-val{font-size:14px;}
 .compania-cols .acc-name{font-size:13px;}
 .compania-cols .acc-sup{font-size:10.5px;margin-left:4px;}
 .compania-cols .acc-head{padding:10px 12px;}
@@ -138,6 +141,11 @@ table tbody tr:hover{background:var(--panel2);}
 .banner .b-arrow{color:#5c6f85;font-size:18px;padding-bottom:4px;}
 .banner .b-sub{font-size:12.5px;color:#94a6bc;position:relative;}
 .banner .b-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;position:relative;}
+.banner .b-cobro-row{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);position:relative;}
+.banner .b-cobro-item{display:flex;flex-direction:column;}
+.banner .b-cobro-lbl{font-size:10px;color:#94a6bc;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
+.banner .b-cobro-val{font-size:17px;font-weight:700;color:#f3a58f;}
+.banner .b-cobro-val.muted{color:#6e82a0;font-weight:500;}
 .banner .b-pill{
   padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
   background:rgba(255,255,255,.08);color:#dbe4ef;
@@ -672,20 +680,23 @@ function pctDespuesDisplay(audit){
   return pctMermaDespues(audit);
 }
 
-function montoAPagarObjetivo(audit){
+function montoAPagarA(audit, umbral){
   // Se activa solo después de la primera captura de aclaraciones, y solo
-  // si el % final sigue peor que UMBRAL_PAGO. Devuelve el monto adicional
-  // (en $) que haría falta aclarar para quedar exactamente en ese %.
+  // si el % final sigue peor que el umbral dado. Devuelve el monto
+  // adicional (en $) que haría falta aclarar para quedar exactamente en
+  // ese %.
   if(!audit) return null;
   if(!tieneAclaraciones(audit.folio)) return null;
   const venta = Number(audit.ventaPeriodo)||0;
   if(!venta) return null;
   const pctActual = pctMermaDespues(audit);
-  if(pctActual >= UMBRAL_PAGO) return null; // ya está dentro del umbral
+  if(pctActual >= umbral) return null; // ya está dentro del umbral
   const mermaActual = mermaDespues(audit);
-  const mermaObjetivo = UMBRAL_PAGO * venta;
+  const mermaObjetivo = umbral * venta;
   return mermaObjetivo - mermaActual; // monto positivo a pagar/aclarar
 }
+function montoAPagarObjetivo(audit){ return montoAPagarA(audit, UMBRAL_PAGO); }
+function montoAPagarObjetivoGeneral(audit){ return montoAPagarA(audit, OBJETIVO_MERMA); }
 
 /* =====================================================================
    AGREGADOS por región / zona
@@ -706,6 +717,7 @@ function aggregateFor(ecoList){
   let auditadas = 0, ventaTot = 0, mermaAntesTot = 0, mermaDespuesTot = 0;
   let fuera = 0, dentro = 0, cedisTot = 0, brisaTot = 0, depositoTot = 0, empaqueTot = 0;
   let conAclaraciones = 0;
+  let montoCobro65Tot = 0, montoCobro90Tot = 0;
   ecoList.forEach(function(eco){
     const a = latestAudit(eco);
     if(!a) return;
@@ -720,6 +732,8 @@ function aggregateFor(ecoList){
     depositoTot += Number(acl.depositoRecuperacion)||0;
     empaqueTot += Number(acl.manualEmpaque)||0;
     if(tieneAclaraciones(a.folio)) conAclaraciones++;
+    montoCobro65Tot += montoAPagarObjetivoGeneral(a) || 0;
+    montoCobro90Tot += montoAPagarObjetivo(a) || 0;
   });
   return {
     total: ecoList.length,
@@ -733,7 +747,8 @@ function aggregateFor(ecoList){
     mermaDespuesTot: mermaDespuesTot,
     conAclaraciones: conAclaraciones,
     pendientes: auditadas - conAclaraciones,
-    cedisTot: cedisTot, brisaTot: brisaTot, depositoTot: depositoTot, empaqueTot: empaqueTot
+    cedisTot: cedisTot, brisaTot: brisaTot, depositoTot: depositoTot, empaqueTot: empaqueTot,
+    montoCobro65Tot: montoCobro65Tot, montoCobro90Tot: montoCobro90Tot
   };
 }
 
@@ -938,6 +953,10 @@ function bannerHeader(title, a){
     '</div>' +
     '<div class="b-sub">' + fmtMoney(a.mermaAntesTot) + ' · ' + a.auditadas + ' de ' + a.total + ' tiendas auditadas</div>' +
     '<div class="b-pills">' + pills + '</div>' +
+    '<div class="b-cobro-row">' +
+      '<div class="b-cobro-item"><span class="b-cobro-lbl">Cobro a ' + fmtPct(OBJETIVO_MERMA) + '</span><span class="b-cobro-val' + (a.montoCobro65Tot>0?'':' muted') + '">' + (a.montoCobro65Tot>0?fmtMoney(a.montoCobro65Tot):'—') + '</span></div>' +
+      '<div class="b-cobro-item"><span class="b-cobro-lbl">Cobro a ' + fmtPct(UMBRAL_PAGO) + '</span><span class="b-cobro-val' + (a.montoCobro90Tot>0?'':' muted') + '">' + (a.montoCobro90Tot>0?fmtMoney(a.montoCobro90Tot):'—') + '</span></div>' +
+    '</div>' +
     '</div>';
 }
 
@@ -1059,16 +1078,18 @@ function viewZona(region, zona){
       '<td>' + (a ? '<span class="pill ' + pctClass(pctAntes) + '">' + fmtPct(pctAntes) + '</span>' : '—') + '</td>' +
       '<td>' + (a ? '<span class="pill ' + pctClass(pctDesp) + '">' + fmtPct(pctDesp) + '</span>' : '—') + '</td>' +
       '<td>' + (a ? fmtMoney(totalAclarado(a.folio)) : '—') + '</td>' +
-      '<td>' + montoAPagarCellHtml(a) + '</td>' +
+      '<td>' + montoAPagarCellHtml(a, montoAPagarObjetivoGeneral) + '</td>' +
+      '<td>' + montoAPagarCellHtml(a, montoAPagarObjetivo) + '</td>' +
       '</tr>';
   });
   html += '<div class="panel"><div class="table-wrap"><table><thead><tr>' +
-    '<th>Tienda</th><th>Última auditoría</th><th>% Merma inicial</th><th>% Merma final</th><th>Aclarado</th><th>Monto a pagar (' + fmtPct(UMBRAL_PAGO) + ')</th>' +
+    '<th>Tienda</th><th>Última auditoría</th><th>% Merma inicial</th><th>% Merma final</th><th>Aclarado</th>' +
+    '<th>Monto a pagar (' + fmtPct(OBJETIVO_MERMA) + ')</th><th>Monto a pagar (' + fmtPct(UMBRAL_PAGO) + ')</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   return html;
 }
-function montoAPagarCellHtml(audit){
-  const monto = montoAPagarObjetivo(audit);
+function montoAPagarCellHtml(audit, fn){
+  const monto = (fn||montoAPagarObjetivo)(audit);
   if(monto===null || monto===undefined) return '—';
   return '<span class="pill bad">' + fmtMoney(monto) + '</span>';
 }
