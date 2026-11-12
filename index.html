@@ -146,6 +146,8 @@ table tbody tr:hover{background:var(--panel2);}
 .banner .b-cobro-lbl{font-size:10px;color:#94a6bc;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
 .banner .b-cobro-val{font-size:17px;font-weight:700;color:#f3a58f;}
 .banner .b-cobro-val.muted{color:#6e82a0;font-weight:500;}
+.banner .b-cobro-item.clickable{cursor:pointer;padding:4px 8px;margin:-4px -8px;border-radius:8px;transition:background .15s;}
+.banner .b-cobro-item.clickable:hover{background:rgba(255,255,255,.08);}
 .banner .b-pill{
   padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
   background:rgba(255,255,255,.08);color:#dbe4ef;
@@ -818,6 +820,7 @@ function fmtFecha(f){
 function goCompania(){ nav = {view:'compania'}; render(); }
 function goRegion(region){ nav = {view:'region', region:region}; render(); }
 function goZona(region, zona){ nav = {view:'zona', region:region, zona:zona}; render(); }
+function goCobro(region, which){ nav = {view:'cobro', region:region, cobroTipo:which}; render(); }
 function goTienda(eco){
   const list = AUDITORIAS_BY_ECO[eco];
   const folio = list && list.length ? list[0].folio : null;
@@ -843,6 +846,11 @@ function renderCrumbs(){
     parts.push('<span class="sep">›</span>');
     parts.push('<span class="seg current">' + escapeHtml(catalogByEco[nav.eco].nombre) + '</span>');
   }
+  if(nav.view==='cobro'){
+    const lbl = 'Cobro a ' + fmtPct(nav.cobroTipo==='65' ? OBJETIVO_MERMA : UMBRAL_PAGO);
+    parts.push('<span class="sep">›</span>');
+    parts.push('<span class="seg current">' + escapeHtml(lbl) + '</span>');
+  }
   c.innerHTML = parts.join('');
 }
 function esc(s){ return String(s).replace(/'/g,"\\'"); }
@@ -854,6 +862,7 @@ function render(){
   else if(nav.view==='region') el.innerHTML = viewRegion(nav.region);
   else if(nav.view==='zona') el.innerHTML = viewZona(nav.region, nav.zona);
   else if(nav.view==='tienda') el.innerHTML = viewTienda(nav.eco, nav.folio);
+  else if(nav.view==='cobro') el.innerHTML = viewCobro(nav.region, nav.cobroTipo);
   if(nav.view==='tienda') wireTiendaInputs();
 }
 
@@ -873,7 +882,7 @@ function viewCompania(){
     if(!ecos.length) return;
     const a = aggregateFor(ecos);
     html += '<div class="col-region">';
-    html += bannerHeader(region, a);
+    html += bannerHeader(region, a, region);
     html += accordionHtml(region);
     html += '</div>';
   });
@@ -936,7 +945,7 @@ function priorityCleanHtml(ecos, limit){
 /* =====================================================================
    ENCABEZADO TIPO BANNER (región / zona)
    ===================================================================== */
-function bannerHeader(title, a){
+function bannerHeader(title, a, regionForCobro){
   const cls = pctClass(a.pctAntes);
   const clsD = pctClass(a.pctDespues);
   let pills = '';
@@ -944,6 +953,10 @@ function bannerHeader(title, a){
   pills += '<span class="b-pill ok">' + a.dentro + ' dentro</span>';
   if(a.sinAuditar) pills += '<span class="b-pill neutral">' + a.sinAuditar + ' sin audit.</span>';
   const mejoro = a.pctAntes!==null && a.pctDespues!==null && a.pctDespues > a.pctAntes;
+  const r = regionForCobro;
+  const click65 = r ? (' onclick="goCobro(\'' + esc(r) + '\',\'65\')"') : '';
+  const click90 = r ? (' onclick="goCobro(\'' + esc(r) + '\',\'90\')"') : '';
+  const clickCls = r ? ' clickable' : '';
   return '<div class="banner">' +
     '<div class="b-title">' + escapeHtml(title) + '</div>' +
     '<div class="b-pctrow">' +
@@ -954,8 +967,8 @@ function bannerHeader(title, a){
     '<div class="b-sub">' + fmtMoney(a.mermaAntesTot) + ' · ' + a.auditadas + ' de ' + a.total + ' tiendas auditadas</div>' +
     '<div class="b-pills">' + pills + '</div>' +
     '<div class="b-cobro-row">' +
-      '<div class="b-cobro-item"><span class="b-cobro-lbl">Cobro a ' + fmtPct(OBJETIVO_MERMA) + '</span><span class="b-cobro-val' + (a.montoCobro65Tot>0?'':' muted') + '">' + (a.montoCobro65Tot>0?fmtMoney(a.montoCobro65Tot):'—') + '</span></div>' +
-      '<div class="b-cobro-item"><span class="b-cobro-lbl">Cobro a ' + fmtPct(UMBRAL_PAGO) + '</span><span class="b-cobro-val' + (a.montoCobro90Tot>0?'':' muted') + '">' + (a.montoCobro90Tot>0?fmtMoney(a.montoCobro90Tot):'—') + '</span></div>' +
+      '<div class="b-cobro-item' + clickCls + '"' + click65 + '><span class="b-cobro-lbl">Cobro a ' + fmtPct(OBJETIVO_MERMA) + '</span><span class="b-cobro-val' + (a.montoCobro65Tot>0?'':' muted') + '">' + (a.montoCobro65Tot>0?fmtMoney(a.montoCobro65Tot):'—') + '</span></div>' +
+      '<div class="b-cobro-item' + clickCls + '"' + click90 + '><span class="b-cobro-lbl">Cobro a ' + fmtPct(UMBRAL_PAGO) + '</span><span class="b-cobro-val' + (a.montoCobro90Tot>0?'':' muted') + '">' + (a.montoCobro90Tot>0?fmtMoney(a.montoCobro90Tot):'—') + '</span></div>' +
     '</div>' +
     '</div>';
 }
@@ -1051,7 +1064,46 @@ function viewRegion(region){
   const ecos = filteredEcos(storesInRegion(region));
   if(!ecos.length) return '<div class="no-results">No hay tiendas que coincidan con los filtros en esta región.</div>';
   const agg = aggregateFor(ecos);
-  return bannerHeader(region, agg) + accordionHtml(region);
+  return bannerHeader(region, agg, region) + accordionHtml(region);
+}
+
+/* =====================================================================
+   VISTA: COBRO (todas las tiendas de una región con monto a cobrar
+   pendiente a un umbral determinado -0.65% o -0.90%)
+   ===================================================================== */
+function viewCobro(region, which){
+  const umbral = which==='65' ? OBJETIVO_MERMA : UMBRAL_PAGO;
+  const fn = which==='65' ? montoAPagarObjetivoGeneral : montoAPagarObjetivo;
+  const ecos = filteredEcos(storesInRegion(region));
+  let items = [];
+  ecos.forEach(function(eco){
+    const a = latestAudit(eco);
+    if(!a) return;
+    const monto = fn(a);
+    if(monto && monto>0) items.push({eco:eco, info:catalogByEco[eco], audit:a, monto:monto});
+  });
+  items.sort(function(x,y){ return y.monto - x.monto; });
+  const total = items.reduce(function(s,x){ return s+x.monto; }, 0);
+  let html = '<div class="banner"><div class="b-title">Monto a cobrar (' + fmtPct(umbral) + ') · ' + escapeHtml(region) + '</div>' +
+    '<div class="b-sub">' + items.length + ' tienda' + (items.length===1?'':'s') + ' por cobrar · total ' + fmtMoney(total) + '</div></div>';
+  if(!items.length){
+    html += '<div class="no-results">No hay tiendas pendientes de cobro a ' + fmtPct(umbral) + ' en esta región.</div>';
+    return html;
+  }
+  let rows = '';
+  items.forEach(function(x){
+    const pctDesp = pctDespuesDisplay(x.audit);
+    rows += '<tr onclick="goTienda(' + x.eco + ')">' +
+      '<td>' + escapeHtml(x.info.nombre) + '<div style="color:var(--sub);font-size:11.5px;">ECO ' + x.eco + '</div></td>' +
+      '<td>' + escapeHtml(x.info.zona) + '</td>' +
+      '<td><span class="pill ' + pctClass(pctDesp) + '">' + fmtPct(pctDesp) + '</span></td>' +
+      '<td><span class="pill bad">' + fmtMoney(x.monto) + '</span></td>' +
+      '</tr>';
+  });
+  html += '<div class="panel"><div class="table-wrap"><table><thead><tr>' +
+    '<th>Tienda</th><th>Zona</th><th>% Merma final</th><th>Monto a pagar (' + fmtPct(umbral) + ')</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  return html;
 }
 
 /* =====================================================================
