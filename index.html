@@ -488,6 +488,12 @@ const OBJETIVO_MERMA = -0.0065; // referencia, igual que en Control de Merma
 // este %. Antes de la primera captura de aclaraciones no se muestra nada.
 const UMBRAL_PAGO = -0.0090;
 
+// Venta mínima para considerar "normal" una auditoría. Por debajo de este
+// monto (tienda recién abierta, venta prácticamente nula) el % de merma se
+// dispara sin significar nada real, así que esa auditoría también se trata
+// como apertura en los acumulados, aunque no sea técnicamente la primera.
+const VENTA_MINIMA_APERTURA = 1000;
+
 /* =====================================================================
    CATÁLOGO (246 tiendas activas) — [eco, nombre, region, zona, supervisor]
    ===================================================================== */
@@ -509,6 +515,7 @@ CATALOG.forEach(function(s){
    ===================================================================== */
 let AUDITORIAS = [];      // lista de registros de auditoría (uno por folio)
 let AUDITORIAS_BY_ECO = {}; // eco -> [registros] ordenados por fecha desc
+let PRIMERA_AUDITORIA_FOLIO_BY_ECO = {}; // eco -> folio de su primera auditoría histórica (apertura)
 let ACLARACIONES = {};    // folio -> {cedisConfianza,brisa,depositoRecuperacion,editCount,ultimaModificacion,historial}
 
 let nav = { view:'compania', region:null, zona:null, eco:null, folio:null };
@@ -631,6 +638,24 @@ async function loadData(){
 }
 
 function indexAuditorias(){
+  // Folio de la primera auditoría histórica de cada tienda (apertura),
+  // calculado siempre sobre el histórico completo, sin importar el filtro
+  // de mes activo — así una tienda recién abierta se sigue reconociendo
+  // aunque se filtre solo el mes de su apertura.
+  PRIMERA_AUDITORIA_FOLIO_BY_ECO = {};
+  const porEcoCompleto = {};
+  AUDITORIAS.forEach(function(a){
+    if(!porEcoCompleto[a.eco]) porEcoCompleto[a.eco] = [];
+    porEcoCompleto[a.eco].push(a);
+  });
+  Object.keys(porEcoCompleto).forEach(function(eco){
+    let primera = porEcoCompleto[eco][0];
+    porEcoCompleto[eco].forEach(function(a){
+      if(parseFechaSort(a.fecha) < parseFechaSort(primera.fecha)) primera = a;
+    });
+    PRIMERA_AUDITORIA_FOLIO_BY_ECO[eco] = primera.folio;
+  });
+
   AUDITORIAS_BY_ECO = {};
   AUDITORIAS.forEach(function(a){
     if(MES_FILTER!=='all' && mesKey(a.fecha)!==MES_FILTER) return;
@@ -640,6 +665,11 @@ function indexAuditorias(){
   Object.keys(AUDITORIAS_BY_ECO).forEach(function(eco){
     AUDITORIAS_BY_ECO[eco].sort(function(x,y){ return parseFechaSort(y.fecha) - parseFechaSort(x.fecha); });
   });
+}
+
+function esPrimeraAuditoria(audit){
+  if(!audit) return false;
+  return PRIMERA_AUDITORIA_FOLIO_BY_ECO[audit.eco] === audit.folio;
 }
 
 function parseFechaSort(f){
@@ -724,18 +754,35 @@ function aggregateFor(ecoList){
     const a = latestAudit(eco);
     if(!a) return;
     auditadas++;
-    ventaTot += Number(a.ventaPeriodo)||0;
-    mermaAntesTot += Number(a.totalMerma)||0;
-    mermaDespuesTot += mermaDespues(a);
-    if(isFuera(Number(a.pctMerma))) fuera++; else dentro++;
+    const venta = Number(a.ventaPeriodo)||0;
+    ventaTot += venta;
+    // Apertura: ya sea porque es la primera auditoría histórica de la
+    // tienda, o porque su venta del periodo es prácticamente nula (menos
+    // de VENTA_MINIMA_APERTURA), su % de merma no es representativo.
+    const esApertura = esPrimeraAuditoria(a) || venta < VENTA_MINIMA_APERTURA;
+    if(esApertura){
+      // Para el acumulado se cuenta exactamente al objetivo (-0.65%) en
+      // vez de su % real. El detalle de la tienda sigue mostrando sus
+      // cifras reales sin alterar.
+      const mermaObjetivo = OBJETIVO_MERMA * venta;
+      mermaAntesTot += mermaObjetivo;
+      mermaDespuesTot += mermaObjetivo;
+      dentro++;
+    } else {
+      mermaAntesTot += Number(a.totalMerma)||0;
+      mermaDespuesTot += mermaDespues(a);
+      if(isFuera(Number(a.pctMerma))) fuera++; else dentro++;
+    }
     const acl = aclFor(a.folio);
     cedisTot += Number(acl.cedisConfianza)||0;
     brisaTot += Number(acl.brisa)||0;
     depositoTot += Number(acl.depositoRecuperacion)||0;
     empaqueTot += Number(acl.manualEmpaque)||0;
     if(tieneAclaraciones(a.folio)) conAclaraciones++;
-    montoCobro65Tot += montoAPagarObjetivoGeneral(a) || 0;
-    montoCobro90Tot += montoAPagarObjetivo(a) || 0;
+    if(!esApertura){
+      montoCobro65Tot += montoAPagarObjetivoGeneral(a) || 0;
+      montoCobro90Tot += montoAPagarObjetivo(a) || 0;
+    }
   });
   return {
     total: ecoList.length,
