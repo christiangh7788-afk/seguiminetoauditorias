@@ -721,6 +721,11 @@ function montoAPagarA(audit, umbral){
   if(!tieneAclaraciones(audit.folio)) return null;
   const venta = Number(audit.ventaPeriodo)||0;
   if(!venta) return null;
+  // Apertura (primera auditoría histórica o venta menor a
+  // VENTA_MINIMA_APERTURA): se cuenta al objetivo y no genera cobro, en
+  // cualquier lugar donde se muestre este monto (tarjetas, tabla de zona,
+  // detalle de tienda, tabla de cobro).
+  if(esPrimeraAuditoria(audit) || venta < VENTA_MINIMA_APERTURA) return null;
   const pctActual = pctMermaDespues(audit);
   if(pctActual >= umbral) return null; // ya está dentro del umbral
   const mermaActual = mermaDespues(audit);
@@ -779,10 +784,8 @@ function aggregateFor(ecoList){
     depositoTot += Number(acl.depositoRecuperacion)||0;
     empaqueTot += Number(acl.manualEmpaque)||0;
     if(tieneAclaraciones(a.folio)) conAclaraciones++;
-    if(!esApertura){
-      montoCobro65Tot += montoAPagarObjetivoGeneral(a) || 0;
-      montoCobro90Tot += montoAPagarObjetivo(a) || 0;
-    }
+    montoCobro65Tot += montoAPagarObjetivoGeneral(a) || 0;
+    montoCobro90Tot += montoAPagarObjetivo(a) || 0;
   });
   return {
     total: ecoList.length,
